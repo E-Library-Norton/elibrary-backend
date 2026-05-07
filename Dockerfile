@@ -18,7 +18,8 @@ RUN npm ci --ignore-scripts
 FROM node:20-alpine AS runner
 
 # Security: add dumb-init for proper signal handling (PID 1 problem)
-RUN apk add --no-cache dumb-init curl
+# netcat-openbsd is required by docker-entrypoint.sh to wait for PostgreSQL
+RUN apk add --no-cache dumb-init curl netcat-openbsd
 
 # Non-root user for security
 RUN addgroup -g 1001 -S elibrary && \
@@ -37,7 +38,7 @@ COPY scripts/ ./scripts/
 COPY docker-entrypoint.sh ./
 
 # Create directories for runtime data (owned by non-root user)
-RUN mkdir -p uploads/covers uploads/pdfs logs && \
+RUN mkdir -p uploads/covers uploads/pdfs logs backups && \
     chown -R elibrary:elibrary /app
 
 # Make entrypoint executable

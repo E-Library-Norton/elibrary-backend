@@ -323,6 +323,41 @@ class ReviewController {
   }
 
   // ── GET /api/reviews  (admin — all reviews with filters) ────────────────────
+  // ── GET /api/reviews/public (no auth — homepage testimonials) ──────────────
+  static async getPublic(req, res, next) {
+    try {
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+
+      const rows = await Review.findAll({
+        where: { isDeleted: false },
+        include: [
+          {
+            model: User,
+            as: 'User',
+            attributes: ['id', 'firstName', 'lastName', 'username', 'avatar'],
+          },
+          {
+            model: Book,
+            as: 'Book',
+            attributes: ['id', 'title'],
+            where: { isDeleted: false },
+            required: true,
+          },
+        ],
+        order: [
+          ['rating', 'DESC'],
+          ['created_at', 'DESC'],
+        ],
+        limit,
+      });
+
+      return ResponseFormatter.success(res, rows);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ── GET /api/reviews (admin) ───────────────────────────────────────────────
   static async getAll(req, res, next) {
     try {
       const page   = Math.max(1, Number(req.query.page)  || 1);

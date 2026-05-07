@@ -35,12 +35,18 @@ class RoleController {
   // ── POST /api/roles ─────────────────────────────────────────────────────────
   static async create(req, res, next) {
     try {
-      const { name, description } = req.body;
+      const { name, description, permissionIds = [] } = req.body;
 
       const existing = await Role.findOne({ where: { name } });
       if (existing) throw new ConflictError(`Role '${name}' already exists`);
 
       const role = await Role.create({ name, description });
+
+      // Assign permissions if provided
+      if (permissionIds.length > 0) {
+        const permissions = await Permission.findAll({ where: { id: permissionIds } });
+        await role.setPermissions(permissions);
+      }
 
       await logActivity({
         userId: req.user.id,
@@ -48,11 +54,17 @@ class RoleController {
         targetType: "role",
         targetId: role.id,
         targetName: role.name,
+        details: { permissionIds },
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
 
-      return ResponseFormatter.success(res, role, "Role created successfully", 201);
+      // Return role with its permissions
+      const created = await Role.findByPk(role.id, {
+        include: [{ association: "Permissions", through: { attributes: [] } }],
+      });
+
+      return ResponseFormatter.success(res, created, "Role created successfully", 201);
     } catch (err) {
       next(err);
     }

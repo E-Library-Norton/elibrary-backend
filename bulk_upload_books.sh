@@ -73,9 +73,9 @@ for i in {1..500}; do
   "publishers": 1,
   "authors": 1,
   "editors": 3,
-  "categoryId": 6,
-  "departmentId": 3,
-  "typeId": 5,
+  "categoryId": 5,
+  "departmentId": 4,
+  "typeId": 2,
   "isActive": true
 }
 EOF

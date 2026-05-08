@@ -1,10 +1,10 @@
 # 📚 Norton E-Library — Product Requirements Document (PRD)
 
-> **Version:** 1.3  
-> **Last Updated:** April 19, 2026  
+> **Version:** 1.4  
+> **Last Updated:** May 8, 2026  
 > **Author:** Norton University Development Team  
 > **Project:** Norton E-Library  
-> **Status:** Live in Production (v1.0)
+> **Status:** Live in Production (v1.1)
 
 ---
 
@@ -1069,9 +1069,10 @@ The system uses Google's Gemini AI to provide intelligent book recommendations:
 - **Migration Config:** `.sequelizerc` → `src/config/sequelize-cli-config.js` (reads `DATABASE_URL`)
 - **Cold Start Handling:** Retry loop for DB connection (5 attempts, 3s backoff)
 - **No auto-sync** — `sequelize.sync()` removed; all schema changes via versioned migrations
-- **Active DB Instance (April 2026):** `nu_elibrary_db_nvwp` on Render Singapore (`dpg-d7h07ej7uimc73d1o6qg-a.singapore-postgres.render.com`)
+- **Active DB Instance (May 2026):** `nu_elibrary_db_nvwp` on Render Singapore (`dpg-d7h07ej7uimc73d1o6qg-a.singapore-postgres.render.com`)
 - **DB Migration:** Database backup restored to new Render PostgreSQL instance on April 18, 2026 using `scripts/restore-db.sh` with compressed `pg_dump` backup.
 - **AI Route Fix (April 19, 2026):** `aiRecommendations` router was defined but not mounted — fixed by adding `router.use('/api/ai/recommendations', aiRecommendationRoutes)` in `src/routes/index.js`. All AI recommendation endpoints now fully reachable.
+- **Stable Operations (May 2026):** All systems confirmed stable as of May 8, 2026. Sentry error rate nominal, DB performance steady, production monitoring via `monitor-prod.sh` running continuously.
 
 ### 18.3 Frontend Deployment (Vercel)
 - **Framework:** Next.js (auto-detected by Vercel)

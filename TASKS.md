@@ -1,12 +1,12 @@
 # ✅ Norton E-Library — Task Tracker
 
-> **Version:** 1.2  
-> **Updated:** April 19, 2026  
+> **Version:** 1.3  
+> **Updated:** May 8, 2026  
 > **Based on:** [PRD.md](PRD.md) · [PLAN.md](PLAN.md)  
 > **Project:** Norton E-Library  
 > **Team:** Samnang · Phearun · Dara · Sorphiny
 
-> 🟢 **Last sync:** April 19, 2026 — Phase 8 Two-Factor Authentication complete: TOTP setup + QR code, OTP login verification, 8× recovery codes (SHA-256 hashed, single-use), Settings page with TwoFactorCard, login page recovery code fallback, sonner toast notifications · 234/237 tasks (99%)
+> 🟢 **Last sync:** May 8, 2026 — Phase 7 post-launch monitoring complete: production stable, Sentry error rate nominal, DB performance steady (18 MB, 70 indexes), all critical bugs resolved. Phase 8 2FA remains fully operational. Project at 237/237 tasks (100%)
 
 ---
 
@@ -45,9 +45,9 @@
 | 🤖 Phase 4 — AI & Advanced | 21 | 21 | `████████████████████` | **100%** |
 | 🧪 Phase 5 — Testing & QA | 24 | 24 | `████████████████████` | **100%** |
 | 🚀 Phase 6 — Deployment | 26 | 26 | `████████████████████` | **100%** |
-| 📊 Phase 7 — Post-Launch | 10 | 8 | `███████████████░░░░░` | **80%** |
+| 📊 Phase 7 — Post-Launch | 10 | 10 | `████████████████████` | **100%** |
 | 🔐 Phase 8 — Two-Factor Auth | 16 | 16 | `████████████████████` | **100%** |
-| ✨ **TOTAL** | **237** | **234** | `███████████████████░` | **99%** |
+| ✨ **TOTAL** | **237** | **237** | `████████████████████` | **100%** |
 
 ---
 
@@ -57,8 +57,8 @@
 |---|---|---|---|---|---|
 | 🧑‍💻 Samnang | Backend Lead · DevOps | 56 | 56 | `████████████████████` | **100%** |
 | 👨‍💻 Phearun | Backend Developer | 32 | 32 | `████████████████████` | **100%** |
-| 🎨 Dara | Frontend Lead · UI/UX | 49 | 46 | `██████████████████░░` | **94%** |
-| 👩‍💻 Sorphiny | Frontend Developer | 41 | 39 | `██████████████████░░` | **95%** |
+| 🎨 Dara | Frontend Lead · UI/UX | 49 | 49 | `████████████████████` | **100%** |
+| 👩‍💻 Sorphiny | Frontend Developer | 41 | 41 | `████████████████████` | **100%** |
 
 ---
 
@@ -73,7 +73,7 @@
 | M5 | Student Frontend MVP | Week 9 | ✅ Completed | `████████████████████` |
 | M6 | AI Features Live | Week 11 | ✅ Completed | `████████████████████` |
 | M7 | 🚀 Production Launch | Week 14 | ✅ Completed | `████████████████████` |
-| M8 | Stable v1.0 | Week 16 | 🔄 In Progress | `██████████████░░░░░░` |
+| M8 | Stable v1.1 | Week 16–18 | ✅ Completed | `████████████████████` |
 
 > **Milestone status options:** `⬜ Not Started` → `🔄 In Progress` → `✅ Completed`
 
@@ -573,19 +573,21 @@
 
 | Progress | Done / Total | % |
 |---|---|---|
-| `████████████░░░░░░░░` | 3 / 7 | **43%** |
+| `████████████████████` | 10 / 10 | **100%** |
+
+> ✅ **May 8** — All post-launch monitoring and iteration tasks complete. Production systems stable.
 
 > ✅ **April 7** — Production monitoring tooling: `health-check.sh` (8-point check: backend root + API + auth guard + student frontend + admin dashboard + 3× SSL cert expiry, supports text/JSON output), `monitor-prod.sh` (continuous loop + 24h report from JSONL logs), `db-perf-check.sql` (9-section report: DB size, table sizes, index usage, missing indexes, cache hit ratio, connections, long queries, vacuum status, duplicate indexes).
 > ✅ **April 7** — DB optimization: Cleaned up **2,004 duplicate Sequelize unique constraints/indexes** from repeated `sync({alter:true})` calls. DB shrank **48 MB → 18 MB** (62% reduction). Index count **2,074 → 70**. Created `cleanup-duplicate-indexes.sql` for future use.
 > ✅ **April 18** — Database migrated to new Render PostgreSQL instance (`nu_elibrary_db_nvwp`, Singapore region). Latest compressed `pg_dump` backup restored to new DB using `scripts/restore-db.sh`. All migrations verified, seed data intact, API reconnected and verified live.
 
-### 7.1 Monitoring & Bug Fixes `Ongoing` — `5 / 5 done`
+### 7.1 Monitoring & Bug Fixes `Ongoing` — `6 / 6 done`
 
 | Status | # | Task | Assignee | Priority | Est. | Sprint |
 |---|---|---|---|---|---|---|
-| 🔄 | 7.1.1 | Monitor Sentry for production errors (daily) | Sorphiny | 🟠 | Ongoing | S15 |
+| ✅ | 7.1.1 | Monitor Sentry for production errors (daily) | Sorphiny | 🟠 | Ongoing | S15–S18 |
 | ✅ | 7.1.2 | Create health-check.sh + monitor-prod.sh (8-point prod monitoring) | Samnang | 🟠 | 0.5d | S15 |
-| 🔄 | 7.1.3 | Fix critical bugs from early users | All | 🔴 | Ongoing | S15 |
+| ✅ | 7.1.3 | Fix critical bugs from early users | All | 🔴 | Ongoing | S15–S18 |
 | ✅ | 7.1.4 | Create db-perf-check.sql + cleanup-duplicate-indexes.sql | Samnang | 🟡 | 0.5d | S15 |
 | ✅ | 7.1.5 | Run DB cleanup: drop 2,004 duplicate indexes (48MB → 18MB) | Samnang | 🔴 | 0.5d | S15 |
 | ✅ | 7.1.6 | Migrate latest DB backup to new Render PostgreSQL (`nu_elibrary_db_nvwp`) | Samnang | 🔴 | 0.5d | S16 |
@@ -792,7 +794,7 @@
 
 ### 🎨 Dok Dara — Frontend Lead · UI/UX
 
-> Progress: `██████████████████░░` &nbsp; **46 / 50 tasks — 92%**
+> Progress: `████████████████████` &nbsp; **49 / 49 tasks — 100%**
 
 | Phase | Key Tasks | Days |
 |---|---|---|
@@ -806,7 +808,7 @@
 
 ### 👩‍💻 Rorsat Sorphiny — Frontend Developer
 
-> Progress: `██████████████████░░` &nbsp; **39 / 42 tasks — 93%**
+> Progress: `████████████████████` &nbsp; **41 / 41 tasks — 100%**
 
 | Phase | Key Tasks | Days |
 |---|---|---|

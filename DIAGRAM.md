@@ -1,8 +1,8 @@
 # 📊 Norton E-Library — Architecture & Design Diagrams
 
-> **Version:** 1.1  
+> **Version:** 1.2  
 > **Created:** April 2, 2026  
-> **Last Updated:** April 18, 2026  
+> **Last Updated:** May 8, 2026  
 > **Based on:** [PRD.md](PRD.md) · [PLAN.md](PLAN.md)  
 > **Rendering:** [Mermaid](https://mermaid.js.org) — use GitHub, VS Code Mermaid Preview, or any Mermaid-compatible viewer.
 

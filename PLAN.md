@@ -1,9 +1,9 @@
 # 📋 Norton E-Library — Project Plan
 
-> **Version:** 1.1  
+> **Version:** 1.2  
 > **Created:** April 1, 2026  
-> **Last Updated:** April 18, 2026  
-> **Based on:** [PRD.md](PRD.md) v1.2  
+> **Last Updated:** May 8, 2026  
+> **Based on:** [PRD.md](PRD.md) v1.4  
 > **Project:** Norton E-Library  
 > **Team Lead:** Chan Samnang
 

@@ -8,11 +8,12 @@ const {
     MaterialType,
     Role,
     Activity,
+    sequelize,
 } = require("../models");
 const { Op, fn, col, literal } = require("sequelize");
 const ResponseFormatter = require("../utils/responseFormatter");
 
-// ── In-memory cache for overview stats (TTL = 60s) ────────────────────────────
+// ── In-memory cache for overview stats (TTL = 60s) 
 let _overviewCache = null;
 let _overviewCacheTime = 0;
 const OVERVIEW_CACHE_TTL = 60_000; // 60 seconds
@@ -169,7 +170,7 @@ class StatsController {
 
                 // 7. Monthly New Books
                 Book.findAll({
-                    where: { isDeleted: false, createdAt: { [Op.gte]: twelveMonthsAgo } },
+                    where: { isDeleted: false, [Op.and]: [sequelize.where(col('Book.created_at'), { [Op.gte]: twelveMonthsAgo })] },
                     attributes: [[fn('TO_CHAR', col('created_at'), literal("'YYYY-MM'")), 'month'], [fn('COUNT', col('id')), 'count']],
                     group: [fn('TO_CHAR', col('created_at'), literal("'YYYY-MM'"))],
                     raw: true,
@@ -177,7 +178,7 @@ class StatsController {
 
                 // 8. Monthly User Joins
                 User.findAll({
-                    where: { isDeleted: false, createdAt: { [Op.gte]: twelveMonthsAgo } },
+                    where: { isDeleted: false, [Op.and]: [sequelize.where(col('User.created_at'), { [Op.gte]: twelveMonthsAgo })] },
                     attributes: [[fn('TO_CHAR', col('created_at'), literal("'YYYY-MM'")), 'month'], [fn('COUNT', col('id')), 'count']],
                     group: [fn('TO_CHAR', col('created_at'), literal("'YYYY-MM'"))],
                     raw: true,
@@ -201,7 +202,7 @@ class StatsController {
 
                 // 11. Daily Joins (last 30 days)
                 User.findAll({
-                    where: { isDeleted: false, createdAt: { [Op.gte]: thirtyDaysAgo } },
+                    where: { isDeleted: false, [Op.and]: [sequelize.where(col('User.created_at'), { [Op.gte]: thirtyDaysAgo })] },
                     attributes: [[fn('TO_CHAR', col('created_at'), literal("'YYYY-MM-DD'")), 'date'], [fn('COUNT', col('id')), 'count']],
                     group: [fn('TO_CHAR', col('created_at'), literal("'YYYY-MM-DD'"))],
                     raw: true,
@@ -225,7 +226,7 @@ class StatsController {
 
                 // 14. Yearly Joins
                 User.findAll({
-                    where: { isDeleted: false, createdAt: { [Op.gte]: new Date(`${startYear}-01-01`) } },
+                    where: { isDeleted: false, [Op.and]: [sequelize.where(col('User.created_at'), { [Op.gte]: new Date(`${startYear}-01-01`) })] },
                     attributes: [[fn('EXTRACT', literal("YEAR FROM \"created_at\"")), 'year'], [fn('COUNT', col('id')), 'count']],
                     group: [fn('EXTRACT', literal("YEAR FROM \"created_at\""))],
                     raw: true,

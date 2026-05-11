@@ -7,34 +7,46 @@ TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJ1c2VybmFtZSI6InNhbW5h
 COVER_DIR="./books/cover"
 PDF_DIR="./books/pdf"
 
-# macOS compatible random file picker
-get_random_file() {
-  local dir=$1
-  ls "$dir" | python3 -c "import sys, random; lines = sys.stdin.readlines(); print(random.choice(lines).strip()) if lines else print('')" 2>/dev/null
-}
-
-for i in {1..500}; do
-
-  # 1. Pick random files
-  random_cover=$(get_random_file "$COVER_DIR")
-  random_pdf=$(get_random_file "$PDF_DIR")
+# --- macOS COMPATIBLE FILE LISTING ---
+# We loop through all .pdf files in the PDF directory
+count=0
+# Use a simple glob to iterate through files safely on macOS Bash 3.2
+for pdf_file_path in "$PDF_DIR"/*.pdf; do
   
-  if [ -z "$random_cover" ] || [ -z "$random_pdf" ]; then
-    echo "⚠️ Error: Files not found in $COVER_DIR or $PDF_DIR."
-    exit 1
+  # Check if files actually exist to avoid errors with empty directories
+  [ -e "$pdf_file_path" ] || continue
+  
+  ((count++))
+
+  # Get the filename only (e.g., "Fast API.pdf")
+  random_pdf=$(basename "$pdf_file_path")
+  
+  # 1. Get the Base Name (e.g., "Fast API")
+  base_name="${random_pdf%.*}"
+  
+  # 2. Find matching cover (tries .jpg, .png, .jpeg)
+  random_cover=""
+  for ext in jpg png jpeg; do
+    if [ -f "$COVER_DIR/$base_name.$ext" ]; then
+      random_cover="$base_name.$ext"
+      break
+    fi
+  done
+
+  # Skip if no matching cover is found
+  if [ -z "$random_cover" ]; then
+    echo "⚠️  Warning: No matching cover found for '$base_name'. Skipping..."
+    continue
   fi
 
-  # 2. Extract Title from PDF filename (e.g., "document (1).pdf" -> "document (1)")
-  # This uses shell parameter expansion to remove the extension
-  book_title="${random_pdf%.*}"
-  # Replace underscores with spaces for a cleaner look
-  book_title="${book_title//_/ }"
+  # 3. Format Title for API (Remove underscores for the title)
+  book_title="${base_name//_/ }"
 
   cover_path="$COVER_DIR/$random_cover"
   pdf_path="$PDF_DIR/$random_pdf"
 
   echo "======================================"
-  echo "📤 Uploading ($i/500): $book_title"
+  echo "📤 Uploading ($count): $book_title"
 
   # ---------------- UPLOAD COVER ----------------
   cover_response=$(curl -s -X POST "$UPLOAD_API" \
@@ -65,17 +77,17 @@ for i in {1..500}; do
   "titleKh": "សៀវភៅ $book_title",
   "isbn": "$isbn",
   "publicationYear": 2026,
-  "description": "Auto-uploaded from filename: $random_pdf",
+  "description": "Auto-uploaded: $base_name",
   "coverUrl": "$cover_url",
   "pdfUrl": "$pdf_url",
   "pdfUrls": [],
   "pages": $(( (RANDOM % 300) + 50 )),
-  "publishers": 1,
-  "authors": 1,
-  "editors": 3,
-  "categoryId": 5,
-  "departmentId": 4,
-  "typeId": 2,
+  "publishers": 2,
+  "authors": 2,
+  "editors": 8,
+  "categoryId": 7,
+  "departmentId": 6,
+  "typeId": 1,
   "isActive": true
 }
 EOF

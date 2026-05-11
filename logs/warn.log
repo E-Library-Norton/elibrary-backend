@@ -34,3 +34,10 @@
 {"timestamp":"2026-05-06T08:03:00.776Z","level":"WARN","message":"fetch failed","bookId":"4482","status":null}
 {"timestamp":"2026-05-06T08:06:04.344Z","level":"WARN","message":"fetch failed","bookId":"4482","status":null}
 {"timestamp":"2026-05-06T08:15:05.164Z","level":"WARN","message":"fetch failed","bookId":"4482","status":null}
+{"timestamp":"2026-05-11T07:53:05.205Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}
+{"timestamp":"2026-05-11T07:54:57.965Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}
+{"timestamp":"2026-05-11T07:57:33.921Z","level":"WARN","message":"fetch failed","bookId":"4650","status":null}
+{"timestamp":"2026-05-11T08:08:45.450Z","level":"WARN","message":"fetch failed","bookId":"4650","status":null}
+{"timestamp":"2026-05-11T08:10:26.545Z","level":"WARN","message":"fetch failed","bookId":"4648","status":null}
+{"timestamp":"2026-05-11T08:17:00.026Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}
+{"timestamp":"2026-05-11T08:17:10.942Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}

@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const ActivityController = require('../controllers/activityController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 
 router.get(
     '/',
     authenticate,
-    authorize('admin', 'librarian', 'administrator', 'super admin'),
+    requirePermission('users.view'),
     ActivityController.getActivities
 );
 

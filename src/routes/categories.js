@@ -5,19 +5,19 @@
 const express = require("express");
 const router = express.Router();
 const CategoryController = require("../controllers/categoryController");
-const { authenticate, authorize } = require("../middleware/auth");
+const { authenticate, requirePermission } = require("../middleware/auth");
 const { idValidation } = require("../middleware/validation");
 
 router.get("/", CategoryController.getAll);
 
 router.get("/:id", idValidation, CategoryController.getById);
 
-router.post("/", authenticate, authorize("admin", "librarian"), CategoryController.create);
+router.post("/", authenticate, requirePermission("books.create"), CategoryController.create);
 
 router.put(
   "/:id",
   authenticate,
-  authorize("admin", "librarian"),
+  requirePermission("books.update"),
   idValidation,
   CategoryController.update
 );
@@ -25,7 +25,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize("admin"),
+  requirePermission("books.delete"),
   idValidation,
   CategoryController.delete
 );

@@ -3,9 +3,9 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 
-// ── 30s user cache — avoids hitting DB on every request ─────────────────────
-const _userCache = new Map(); // userId → { user, ts }
-const USER_CACHE_TTL = 30_000; // 30 seconds
+// ── 30s user cache — avoids hitting DB 
+const _userCache = new Map(); 
+const USER_CACHE_TTL = 60_000; 
 
 function getCachedUser(userId) {
   const entry = _userCache.get(userId);
@@ -19,12 +19,12 @@ function setCachedUser(userId, user) {
   }
   _userCache.set(userId, { user, ts: Date.now() });
 }
-/** Call this after role/status changes so the next request gets fresh data */
+
 function invalidateUserCache(userId) { _userCache.delete(userId); }
 
+function clearUserCache() { _userCache.clear(); }
 
-// ── authenticate ──────────────────────────────────────────────────────────────
-// Optimized: verify JWT first (sync, ~0ms) before hitting DB
+
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
@@ -47,8 +47,13 @@ const authenticate = async (req, res, next) => {
     if (!user) {
       user = await User.findByPk(decoded.id, {
         include: [
-          { association: 'Roles', through: { attributes: [] } },
-          { association: 'Permissions', through: { attributes: [] } },
+          {
+            association: 'Roles',
+            through: { attributes: [] },
+            // ↓ must be nested here so requirePermission can read r.Permissions
+            include: [{ association: 'Permissions', through: { attributes: [] } }],
+          },
+          { association: 'Permissions', through: { attributes: [] } }, // direct permissions
         ],
         attributes: ['id', 'avatar', 'username', 'email', 'studentId', 'firstName', 'lastName', 'isActive'],
       });
@@ -85,12 +90,24 @@ const authorize = (...allowedRoles) => {
 };
 
 // ── requirePermission ─────────────────────────────────────────────────────────
+// Uses the Roles + Permissions already eagerly loaded by `authenticate` — no
+// extra DB query needed.
 const requirePermission = (permissionName) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     if (!req.user) return ResponseFormatter.unauthorized(res, 'Authentication required');
-    // user already has Roles + Permissions loaded from authenticate middleware
-    const hasPermission = await req.user.hasPermission(permissionName);
-    if (!hasPermission) return ResponseFormatter.forbidden(res, `Permission required: ${permissionName}`);
+
+    // Collect permission names from role-based permissions already loaded
+    const rolePermNames = (req.user.Roles || [])
+      .flatMap((r) => (r.Permissions || []).map((p) => p.name));
+
+    // Collect direct permissions already loaded
+    const directPermNames = (req.user.Permissions || []).map((p) => p.name);
+
+    const allPermissions = new Set([...rolePermNames, ...directPermNames]);
+
+    if (!allPermissions.has(permissionName)) {
+      return ResponseFormatter.forbidden(res, `Permission required: ${permissionName}`);
+    }
     next();
   };
 };
@@ -143,4 +160,4 @@ const authenticateStream = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate, authorize, requirePermission, optionalAuth, authenticateStream, invalidateUserCache };
+module.exports = { authenticate, authorize, requirePermission, optionalAuth, authenticateStream, invalidateUserCache, clearUserCache };

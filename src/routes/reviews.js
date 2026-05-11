@@ -1,18 +1,16 @@
 // routes/reviews.js
 const router           = require('express').Router();
 const ReviewController = require('../controllers/reviewController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 
 // ── Public — homepage testimonials (no auth) ────────────────────────────────
-// GET /api/reviews/public?limit=50
 router.get('/public', ReviewController.getPublic);
 
 // ── Admin — list all reviews with filters ────────────────────────────────────
-// GET /api/reviews?page=1&limit=20&bookId=&userId=&rating=
-router.get('/', authenticate, authorize('admin', 'librarian'), ReviewController.getAll);
+router.get('/', authenticate, requirePermission('books.view'), ReviewController.getAll);
 
 // ── Admin stats ───────────────────────────────────────────────────────────────
-router.get('/stats', authenticate, authorize('admin', 'librarian'), ReviewController.getStats);
+router.get('/stats', authenticate, requirePermission('books.view'), ReviewController.getStats);
 
 // ── Authenticated user's own reviews ─────────────────────────────────────────
 router.get('/my', authenticate, ReviewController.getMyReviews);

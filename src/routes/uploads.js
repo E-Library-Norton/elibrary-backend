@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const UploadController = require("../controllers/uploadController");
-const { authenticate, authorize } = require("../middleware/auth");
+const { authenticate, requirePermission } = require("../middleware/auth");
 const { uploadSingle, uploadMulti } = require("../middleware/upload");
 
 // Single upload
 router.post(
   "/single",
   authenticate,
-  authorize("admin", "librarian"),
+  requirePermission("books.create"),
   uploadSingle,
   UploadController.uploadSingle
 );
@@ -17,7 +17,7 @@ router.post(
 router.post(
   "/multiple",
   authenticate,
-  authorize("admin", "librarian"),
+  requirePermission("books.create"),
   uploadMulti,
   UploadController.uploadMultiple
 );
@@ -26,7 +26,7 @@ router.post(
 router.post(
   "/delete",
   authenticate,
-  authorize("admin", "librarian"),
+  requirePermission("books.delete"),
   UploadController.deleteFile
 );
 

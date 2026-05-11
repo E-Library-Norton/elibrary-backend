@@ -93,12 +93,15 @@ class AuthController {
 
       logActivity({ userId: user.id, action: 'login', targetId: user.id, targetName: user.username, targetType: 'user' });
 
+      const { roles: roleNames, permissions } = await user.getRolesAndPermissions();
+
       return ResponseFormatter.success(res, {
         user: {
-          id: user.id, avatar: user.avatar , username: user.username,
+          id: user.id, avatar: user.avatar, username: user.username,
           email: user.email, studentId: user.studentId,
           firstName: user.firstName, lastName: user.lastName,
-          roles: user.Roles.map(r => r.name),
+          roles: roleNames,
+          permissions,
           twoFactorEnabled: user.twoFactorEnabled,
         },
         accessToken,
@@ -144,11 +147,14 @@ class AuthController {
       });
       if (!user) throw new NotFoundError('User not found');
 
+      const { roles: roleNames, permissions } = await user.getRolesAndPermissions();
+
       return ResponseFormatter.success(res, {
         id: user.id, avatar: user.avatar, username: user.username,
         email: user.email, studentId: user.studentId,
         firstName: user.firstName, lastName: user.lastName,
-        roles: user.Roles.map(r => r.name), twoFactorEnabled: user.twoFactorEnabled, createdAt: user.createdAt,
+        roles: roleNames, permissions,
+        twoFactorEnabled: user.twoFactorEnabled, createdAt: user.createdAt,
       });
     } catch (err) { next(err); }
   }

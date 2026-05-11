@@ -16,13 +16,16 @@ async function seed() {
     { id: 6, name: 'roles.create',       description: 'Create roles' },
     { id: 7, name: 'roles.update',       description: 'Update roles' },
     { id: 8, name: 'roles.delete',       description: 'Delete roles' },
-    { id: 9, name: 'permissions.view',   description: 'View permissions' },
-    { id: 10, name: 'permissions.assign', description: 'Assign permissions' },
-    { id: 11, name: 'books.view',         description: 'View books' },
-    { id: 12, name: 'books.create',       description: 'Create books' },
-    { id: 13, name: 'books.update',       description: 'Update books' },
-    { id: 14, name: 'books.delete',       description: 'Delete books' },
-    { id: 15, name: 'books.download',     description: 'Download books' },
+    { id: 9,  name: 'permissions.view',   description: 'View permissions' },
+    { id: 10, name: 'permissions.create', description: 'Create permissions' },
+    { id: 11, name: 'permissions.update', description: 'Update permissions' },
+    { id: 12, name: 'permissions.delete', description: 'Delete permissions' },
+    { id: 13, name: 'permissions.assign', description: 'Assign permissions to roles' },
+    { id: 14, name: 'books.view',         description: 'View books' },
+    { id: 15, name: 'books.create',       description: 'Create books' },
+    { id: 16, name: 'books.update',       description: 'Update books' },
+    { id: 17, name: 'books.delete',       description: 'Delete books' },
+    { id: 18, name: 'books.download',     description: 'Download books' },
   ];
 
   for (const p of permissions) {

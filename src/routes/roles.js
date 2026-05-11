@@ -3,17 +3,17 @@ const express = require("express");
 const router = express.Router();
 
 const RoleController = require("../controllers/roleController");
-const { authenticate, authorize } = require("../middleware/auth");
+const { authenticate, requirePermission } = require("../middleware/auth");
 const { roleRules } = require("../middleware/validation");
 
 router.use(authenticate);
 
-// Only admins can manage roles
-router.get("/",      authorize("admin"),   RoleController.getAll);
-router.get("/:id",   roleRules.id,   authorize("admin"),   RoleController.getById);
-router.post("/",     authorize("admin"), roleRules.create, RoleController.create);
-router.put("/:id",   authorize("admin"), roleRules.update, RoleController.update);
-router.delete("/:id",authorize("admin"), roleRules.id,     RoleController.delete);
-router.put("/:id/permissions", authorize("admin"), roleRules.assignPermissions, RoleController.assignRolePermissions);
+// Permission-based role management
+router.get("/",      requirePermission("roles.view"),   RoleController.getAll);
+router.get("/:id",   roleRules.id,   requirePermission("roles.view"),   RoleController.getById);
+router.post("/",     requirePermission("roles.create"), roleRules.create, RoleController.create);
+router.put("/:id",   requirePermission("roles.update"), roleRules.update, RoleController.update);
+router.delete("/:id",requirePermission("roles.delete"), roleRules.id,     RoleController.delete);
+router.put("/:id/permissions", requirePermission("roles.update"), roleRules.assignPermissions, RoleController.assignRolePermissions);
 
 module.exports = router;

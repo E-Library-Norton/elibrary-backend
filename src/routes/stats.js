@@ -5,12 +5,12 @@
 const express = require("express");
 const router = express.Router();
 const StatsController = require("../controllers/statsController");
-const { authenticate, authorize } = require("../middleware/auth");
+const { authenticate, requirePermission } = require("../middleware/auth");
 
 router.get(
   "/overview",
   authenticate,
-  authorize("admin", "librarian", "administrator", "super admin", "testing"),
+  requirePermission("users.view"),
   StatsController.getOverview
 );
 

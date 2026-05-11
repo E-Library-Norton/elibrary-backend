@@ -1,12 +1,12 @@
 // routes/materialTypes.js
 const router                  = require('express').Router();
 const MaterialTypeController  = require('../controllers/materialTypeController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 
 router.get ('/',     MaterialTypeController.getAll);
 router.get ('/:id',  MaterialTypeController.getById);
-router.post('/',     authenticate, authorize('admin', 'librarian'), MaterialTypeController.create);
-router.put ('/:id',  authenticate, authorize('admin', 'librarian'), MaterialTypeController.update);
-router.delete('/:id',authenticate, authorize('admin'),              MaterialTypeController.delete);
+router.post('/',     authenticate, requirePermission('books.create'), MaterialTypeController.create);
+router.put ('/:id',  authenticate, requirePermission('books.update'), MaterialTypeController.update);
+router.delete('/:id',authenticate, requirePermission('books.delete'), MaterialTypeController.delete);
 
 module.exports = router;

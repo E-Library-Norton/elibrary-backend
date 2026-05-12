@@ -6,8 +6,8 @@ const rateLimit = require("express-rate-limit");
 
 // General API rate limiter
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 2 * 60 * 1000, // 2 minutes
+  max: 50, // Limit each IP to 50 requests per windowMs
   message: {
     success: false,
     error: {
@@ -19,10 +19,10 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Strict rate limiter for auth endpoints
+// Strict rate limiter for auth endpoints (register, logout, etc.)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5, // 5 attempts per 15 minutes
+  windowMs: 2 * 60 * 1000, // 2 minutes
+  max: 20,
   message: {
     success: false,
     error: {
@@ -30,7 +30,30 @@ const authLimiter = rateLimit({
       message: "Too many authentication attempts, please try again later.",
     },
   },
+  standardHeaders: true,
+  legacyHeaders: false,
   skipSuccessfulRequests: true,
+});
+
+// Very strict rate limiter specifically for login — brute-force protection
+const loginLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000, // 2-minute window
+  max: 10,                  // max 10 failed attempts per IP per window
+  skipSuccessfulRequests: true, // only count failures toward the cap
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Key by IP + identifier so per-account brute-force is also tracked
+    const identifier = (req.body && (req.body.email || req.body.username || req.body.studentId)) || '';
+    return `${req.ip}:${identifier.toLowerCase()}`;
+  },
+  message: {
+    success: false,
+    error: {
+      code: "LOGIN_LIMIT_EXCEEDED",
+      message: "Too many failed login attempts. Please wait 2 minutes before trying again.",
+    },
+  },
 });
 
 // Upload rate limiter
@@ -49,5 +72,6 @@ const uploadLimiter = rateLimit({
 module.exports = {
   apiLimiter,
   authLimiter,
+  loginLimiter,
   uploadLimiter,
 };

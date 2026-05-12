@@ -4,6 +4,7 @@ const router           = express.Router();
 const AuthController   = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 const { userValidation } = require('../middleware/validation');
+const { loginLimiter, authLimiter } = require('../middleware/rateLimiter');
 const { MAX_FILE_SIZES, FILE_TYPES } = require('../config/constants');
 const { passport, FRONTEND_URL } = require('../config/passport');
 const jwt = require('jsonwebtoken');
@@ -18,17 +19,17 @@ const avatarUpload = multer({
   },
 }).single('avatar');
 
-router.post('/register',        userValidation.register, AuthController.register);
-router.post('/login',           userValidation.login,    AuthController.login);
-router.post('/refresh',                                  AuthController.refresh);
-router.post('/logout',          authenticate,            AuthController.logout);
+router.post('/register',        authLimiter,  userValidation.register, AuthController.register);
+router.post('/login',           loginLimiter, userValidation.login,    AuthController.login);
+router.post('/refresh',                                                 AuthController.refresh);
+router.post('/logout',          authenticate,                           AuthController.logout);
 router.get('/me',               authenticate,            AuthController.getProfile);   // alias: current user
 router.get('/profile',          authenticate,            AuthController.getProfile);
 router.get('/avatar',           authenticate,            AuthController.getAvatar);
 router.patch('/profile',          authenticate,            AuthController.updateProfile);
 router.post('/avatar',          authenticate, avatarUpload, AuthController.uploadAvatar);
 router.put('/change-password', authenticate,            AuthController.changePassword);
-router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
 router.post('/verify-otp',      AuthController.verifyOtp);
 router.post('/reset-password',  AuthController.resetPassword);
 

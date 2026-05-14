@@ -1,7 +1,7 @@
 # ✅ Norton E-Library — Task Tracker
 
-> **Version:** 1.3  
-> **Updated:** May 8, 2026  
+> **Version:** 1.5  
+> **Updated:** May 14, 2026  
 > **Based on:** [PRD.md](PRD.md) · [PLAN.md](PLAN.md)  
 > **Project:** Norton E-Library  
 > **Team:** Samnang · Phearun · Dara · Sorphiny
@@ -745,19 +745,138 @@
 
 ## Backlog — Future Enhancements (v2.0+)
 
-| Status | # | Feature | Priority | Complexity |
-|---|---|---|---|---|
-| ✅ | B.4 | Reading goals & achievements (gamification) | 🟡 | Medium |
-| ✅ | B.5 | Book collections / curated playlists by professors | 🟡 | Medium |
-| ⬜ | B.6 | Mobile app (React Native / PWA) | 🟡 | High |
-| ⬜ | B.7 | Annotation & highlighting in PDF reader | 🟡 | High |
-| ⬜ | B.8 | Bulk book import via CSV/Excel | 🟠 | Low |
-| ✅ | B.9 | Multi-language UI — Khmer (km) & English (en) i18n | 🟠 | High |
-| ⬜ | B.10 | Integration with Norton LMS / student portal | 🟡 | High |
-| ⬜ | B.11 | Offline reading (PWA with service workers) | 🟡 | High |
-| ⬜ | B.12 | Book request system (students request new books) | 🟡 | Low |
-| ⬜ | B.13 | Analytics export (PDF/Excel reports for admin) | 🟡 | Medium |
-| ⬜ | B.14 | Real-time collaborative study notes | 🟢 | High |
+> **Priority key:** 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low  
+> **Status key:** ✅ Done · 🔄 In Progress · 📋 Planned · ⬜ Backlog
+
+| Status | # | Feature | Priority | Complexity | Target |
+|---|---|---|---|---|---|
+| ✅ | B.4 | Reading goals & achievements (gamification) | 🟡 | Medium | v1.1 |
+| ✅ | B.5 | Book collections / curated playlists by professors | 🟡 | Medium | v1.1 |
+| ✅ | B.9 | Multi-language UI — Khmer (km) & English (en) i18n | 🟠 | High | v1.1 |
+| ✅ | B.15 | Push Notifications (Web Push API) | 🟠 | Medium | v1.1 |
+| ✅ | B.16 | User Reviews & Star Ratings for Books | 🟡 | Low | v1.1 |
+| ✅ | B.17 | User Feedback / Bug Report System | 🟡 | Low | v1.1 |
+| ✅ | B.18 | Two-Factor Authentication (TOTP + Face) | 🟠 | High | v1.1 |
+| ✅ | B.19 | Social OAuth Login (Google · Facebook · GitHub) | 🟠 | Medium | v1.1 |
+| ✅ | B.20 | AI Book Summary per book page (`GET /books/:id/summary`) | 🟡 | Low | v1.1 |
+| 🔄 | B.11 | Offline reading (PWA with service workers) | 🟠 | High | v2.0 |
+| 📋 | B.7  | Annotation & highlighting in PDF reader | 🟠 | High | v2.0 |
+| 📋 | B.13 | Analytics export (PDF/Excel reports for admin) | 🟠 | Medium | v2.0 |
+| 📋 | B.8  | Bulk book import via CSV/Excel | 🟡 | Low | v2.0 |
+| 📋 | B.12 | Book request system (students request new books) | 🟡 | Low | v2.0 |
+| 📋 | B.21 | Physical library check-in / check-out via Code ID scan | 🟠 | Medium | v2.0 |
+| 📋 | B.22 | Book return management & due-date reminders | 🟡 | Medium | v2.0 |
+| 📋 | B.23 | Library payment / fine tracking system | 🟡 | Medium | v2.0 |
+| 📋 | B.24 | Admin approval workflow for new student accounts | 🟡 | Low | v2.0 |
+| ⬜ | B.6  | Mobile app (React Native) | 🟢 | High | v3.0 |
+| ⬜ | B.10 | Integration with Norton LMS / student portal | 🟡 | High | v3.0 |
+| ⬜ | B.14 | Real-time collaborative study notes | 🟢 | High | v3.0 |
+| ⬜ | B.25 | AI-powered quiz generation from PDF content | 🟢 | High | v3.0 |
+| ⬜ | B.26 | Book citation generator (APA / MLA / Chicago) | 🟢 | Low | v3.0 |
+| ⬜ | B.27 | Multi-campus support (branch libraries) | 🟢 | High | v3.0 |
+
+---
+
+### 🔄 B.11 — Offline Reading (PWA + Service Workers)
+
+**Goal:** Allow students to cache books for offline reading using browser service workers and IndexedDB.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.11.1 | Upgrade `frontend/` to full PWA (manifest, icons, install prompt) | Dok Dara | 1d |
+| B.11.2 | Implement service worker caching strategy (Cache-First for assets, Network-First for API) | Chan Samnang | 2d |
+| B.11.3 | Add "Save for offline" button on book detail page — fetch & store PDF blob in IndexedDB | Rorsat Sorphiny | 2d |
+| B.11.4 | Offline book shelf UI in `/library` — show cached books with offline badge | Dok Dara | 1d |
+| B.11.5 | Background sync — sync reading progress when connection restores | Chan Samnang | 1d |
+| B.11.6 | Storage management UI — view cached size, remove individual books | Rorsat Sorphiny | 1d |
+| B.11.7 | Test across Chrome, Firefox, Safari (iOS) | All | 1d |
+
+**Dependencies:** Requires R2 CORS config to allow direct blob fetch from browser.
+
+---
+
+### 📋 B.13 — Analytics Export (PDF / Excel Reports)
+
+**Goal:** Admin and Librarian can export dashboard data as downloadable PDF or Excel reports.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.13.1 | Backend: `GET /api/stats/export?format=xlsx` — generate Excel with `exceljs` | Hoeung Phearun | 2d |
+| B.13.2 | Backend: `GET /api/stats/export?format=pdf` — generate PDF with `pdfkit` or `puppeteer` | Chan Samnang | 2d |
+| B.13.3 | Report templates: Overview summary, Top books, User activity, Category distribution | Chan Samnang | 1d |
+| B.13.4 | Backend: `GET /api/downloads/export` — full download log as Excel | Hoeung Phearun | 1d |
+| B.13.5 | Backend: `GET /api/activities/export` — activity audit log as Excel | Hoeung Phearun | 1d |
+| B.13.6 | Dashboard UI: Export button on Overview page with format selector (PDF / Excel) | Rorsat Sorphiny | 1d |
+| B.13.7 | Dashboard UI: Export button on Download Stats table | Dok Dara | 0.5d |
+| B.13.8 | Add export permission: `stats.export` — Admin + Librarian only | Chan Samnang | 0.5d |
+
+**Libraries:** `exceljs` for Excel · `pdfkit` or `puppeteer` for PDF · `date-fns` for date ranges.
+
+---
+
+### ⬜ B.14 — Real-time Collaborative Study Notes
+
+**Goal:** Students can create shared note documents linked to a book, editing simultaneously with real-time sync.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.14.1 | DB model: `StudyNote { id, bookId, title, content(CRDT), createdBy, isPublic }` | TBD | 1d |
+| B.14.2 | DB model: `StudyNoteCollaborator { noteId, userId, role: owner/editor/viewer }` | TBD | 0.5d |
+| B.14.3 | Backend: REST CRUD for notes (`/api/notes`) | TBD | 2d |
+| B.14.4 | Backend: Socket.IO room per note — broadcast delta ops (Yjs / ShareDB) | Chan Samnang | 3d |
+| B.14.5 | Frontend: Rich text editor (TipTap or BlockNote) with collaborative plugin | Dok Dara | 3d |
+| B.14.6 | Frontend: Note panel alongside PDF reader (split view) | Dok Dara | 2d |
+| B.14.7 | Frontend: Collaborator invite by email / username | Rorsat Sorphiny | 1d |
+| B.14.8 | Presence indicators — show active users per note | Rorsat Sorphiny | 1d |
+| B.14.9 | Note history / version restore | TBD | 2d |
+
+**Dependencies:** Socket.IO (already integrated) · Yjs or ShareDB for CRDT · TipTap editor.
+
+---
+
+### 📋 B.21 — Physical Library Check-in / Check-out (Code ID Scan)
+
+**Goal:** Librarian scans student Code ID (barcode / QR) to record physical library entry/exit. Admin can review all entry/exit data.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.21.1 | DB model: `LibraryEntry { id, userId, studentCode, entryTime, exitTime, recordedBy }` | TBD | 0.5d |
+| B.21.2 | Backend: `POST /api/library-entries/scan` — lookup student by code, create entry record | TBD | 1d |
+| B.21.3 | Backend: `PATCH /api/library-entries/:id/checkout` — stamp exit time | TBD | 0.5d |
+| B.21.4 | Backend: `GET /api/library-entries` — paginated list (Admin/Librarian) | TBD | 0.5d |
+| B.21.5 | Dashboard: Scan UI — camera / barcode reader input field, student info preview card | Dok Dara | 2d |
+| B.21.6 | Dashboard: Entry/Exit log table with date filter and export | Dok Dara | 1d |
+| B.21.7 | Dashboard: Live occupancy counter (students currently inside) | Rorsat Sorphiny | 1d |
+
+---
+
+### 📋 B.22 — Book Return Management & Due-date Reminders
+
+**Goal:** Track physical book loans, due dates, and send email reminders to students. Admin approves returns.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.22.1 | DB model: `BookLoan { id, userId, bookId, loanedAt, dueDate, returnedAt, approvedBy }` | TBD | 0.5d |
+| B.22.2 | Backend: `POST /api/loans` — create loan (Librarian) | TBD | 1d |
+| B.22.3 | Backend: `PATCH /api/loans/:id/return` — Admin approves return | TBD | 0.5d |
+| B.22.4 | Backend: Cron job — daily check for overdue loans → send reminder email (Nodemailer) | Chan Samnang | 1d |
+| B.22.5 | Dashboard: Loan management table — active, overdue, returned | Dok Dara | 1.5d |
+| B.22.6 | Student Frontend: "My Borrowed Books" tab in `/library` | Rorsat Sorphiny | 1d |
+
+---
+
+### 📋 B.23 — Library Payment / Fine Tracking
+
+**Goal:** Record and track library fees (late return fines, printing fees, etc.). Admin reviews all payment records.
+
+| Sub-task | Description | Assignee | Est. |
+|---|---|---|---|
+| B.23.1 | DB model: `LibraryFine { id, userId, loanId, amount, reason, paidAt, status }` | TBD | 0.5d |
+| B.23.2 | Backend: Auto-calculate fine on overdue return (configurable daily rate via Settings) | Chan Samnang | 1d |
+| B.23.3 | Backend: `PATCH /api/fines/:id/pay` — mark fine as paid | TBD | 0.5d |
+| B.23.4 | Backend: `GET /api/fines` — list all fines with filters (Admin) | TBD | 0.5d |
+| B.23.5 | Dashboard: Fine management table — pending, paid, waived | Dok Dara | 1d |
+| B.23.6 | Dashboard: Revenue summary card in Overview (total collected this month) | Rorsat Sorphiny | 0.5d |
 
 ---
 

@@ -1,8 +1,8 @@
 # 📊 Norton E-Library — Architecture & Design Diagrams
 
-> **Version:** 1.2  
+> **Version:** 2.0  
 > **Created:** April 2, 2026  
-> **Last Updated:** May 8, 2026  
+> **Last Updated:** May 13, 2026  
 > **Based on:** [PRD.md](PRD.md) · [PLAN.md](PLAN.md)  
 > **Rendering:** [Mermaid](https://mermaid.js.org) — use GitHub, VS Code Mermaid Preview, or any Mermaid-compatible viewer.
 
@@ -25,6 +25,10 @@
 13. [Redux State Architecture](#13-redux-state-architecture)
 14. [Sprint & Phase Timeline](#14-sprint--phase-timeline)
 15. [Data Flow — Book CRUD](#15-data-flow--book-crud)
+16. [Two-Factor Authentication Flow](#16-two-factor-authentication-flow)
+17. [Reviews & Feedback Flow](#17-reviews--feedback-flow)
+18. [Use Case Diagram](#18-use-case-diagram)
+19. [DFD Level 0 — Context Diagram](#19-dfd-level-0--context-diagram)
 
 ---
 
@@ -147,141 +151,191 @@ graph LR
 ```mermaid
 erDiagram
     User {
-        int id PK
-        string firstName
-        string lastName
-        string email UK
+        bigint id PK
+        string avatar
         string username UK
-        string studentId UK
+        string email UK
         string password
-        string phone
-        string avatarUrl
-        string resetOtp
-        datetime otpExpiry
-        boolean isActive
-        datetime deletedAt
+        string student_id UK
+        string first_name
+        string last_name
+        boolean is_active
+        boolean is_deleted
+        datetime created_at
+        datetime updated_at
     }
 
     Role {
-        int id PK
+        bigint id PK
         string name UK
         string description
     }
 
     Permission {
-        int id PK
+        bigint id PK
         string name UK
         string description
     }
 
     Book {
-        int id PK
+        bigint id PK
         string title
+        string title_kh
         string isbn UK
         text description
-        string language
-        int publicationYear
+        int publication_year
         int pages
-        string edition
-        string coverUrl
-        string pdfUrl
-        int viewCount
-        int downloadCount
-        boolean isPublished
-        datetime deletedAt
+        string cover_url
+        string pdf_url
+        int views
+        int downloads
+        int publisher_id FK
+        int category_id FK
+        int department_id FK
+        int type_id FK
+        boolean is_active
+        boolean is_deleted
+        datetime created_at
+        datetime updated_at
     }
 
     Author {
-        int id PK
+        bigint id PK
         string name
-        string bio
+        string name_kh
+        text biography
+        string website
     }
 
     Editor {
-        int id PK
+        bigint id PK
         string name
-        string bio
+        string name_kh
+        text biography
+        string website
     }
 
     Publisher {
         int id PK
         string name
-        string address
-        string website
+        string name_kh
+        text address
+        string contact_email
     }
 
     Category {
         int id PK
         string name UK
-        string description
+        string name_kh
+        text description
     }
 
     Department {
         int id PK
-        string name UK
-        string description
+        string code UK
+        string name
+        string name_kh
+        text description
     }
 
     MaterialType {
         int id PK
         string name UK
-        string description
+        string name_kh
+        text description
     }
 
     Download {
-        int id PK
-        int userId FK
-        int bookId FK
-        datetime downloadedAt
-        string ipAddress
+        bigint id PK
+        bigint user_id FK
+        bigint book_id FK
+        datetime downloaded_at
+        string ip_address
+    }
+
+    Review {
+        bigint id PK
+        bigint book_id FK
+        bigint user_id FK
+        int rating
+        text comment
+        boolean is_deleted
+        datetime created_at
+        datetime updated_at
     }
 
     Activity {
-        int id PK
-        int userId FK
+        bigint id PK
+        bigint user_id FK
         string action
-        string entity
-        int entityId
-        json details
-        string ipAddress
-        datetime createdAt
+        bigint target_id
+        string target_name
+        string target_type
+        json metadata
+        datetime created_at
     }
 
-    Settings {
-        int id PK
-        string key UK
+    Setting {
+        string key PK
         text value
+        string group
+        string type
+        datetime created_at
+        datetime updated_at
+    }
+
+    Feedback {
+        bigint id PK
+        bigint user_id FK
+        enum type
+        string subject
+        text message
+        string name
+        string email
+        int rating
+        datetime created_at
+        datetime updated_at
+    }
+
+    PushSubscription {
+        bigint id PK
+        bigint user_id FK
+        text endpoint UK
+        json keys
+        datetime created_at
+        datetime updated_at
     }
 
     %% Junction Tables
     UsersRoles {
-        int userId FK
-        int roleId FK
+        bigint user_id FK
+        bigint role_id FK
     }
 
     RolesPermissions {
-        int roleId FK
-        int permissionId FK
+        bigint role_id FK
+        bigint permission_id FK
     }
 
     UsersPermissions {
-        int userId FK
-        int permissionId FK
+        bigint user_id FK
+        bigint permission_id FK
     }
 
-    BookAuthor {
-        int bookId FK
-        int authorId FK
+    BooksAuthors {
+        bigint book_id FK
+        bigint author_id FK
+        boolean is_primary_author
     }
 
-    BookEditor {
-        int bookId FK
-        int editorId FK
+    BooksEditors {
+        bigint book_id FK
+        bigint editor_id FK
     }
 
     PublishersBooks {
-        int publisherId FK
-        int bookId FK
+        bigint publisher_id FK
+        bigint book_id FK
     }
 
     %% Relationships
@@ -292,10 +346,10 @@ erDiagram
     User ||--o{ UsersPermissions : "has direct"
     Permission ||--o{ UsersPermissions : "assigned to"
 
-    Book ||--o{ BookAuthor : "written by"
-    Author ||--o{ BookAuthor : "writes"
-    Book ||--o{ BookEditor : "edited by"
-    Editor ||--o{ BookEditor : "edits"
+    Book ||--o{ BooksAuthors : "written by"
+    Author ||--o{ BooksAuthors : "writes"
+    Book ||--o{ BooksEditors : "edited by"
+    Editor ||--o{ BooksEditors : "edits"
     Book ||--o{ PublishersBooks : "published by"
     Publisher ||--o{ PublishersBooks : "publishes"
 
@@ -304,8 +358,14 @@ erDiagram
     Book }o--|| MaterialType : "classified as"
 
     User ||--o{ Download : "downloads"
-    Book ||--o{ Download : "downloaded"
+    Book ||--o{ Download : "downloaded in"
+
+    User ||--o{ Review : "writes"
+    Book ||--o{ Review : "reviewed in"
+
     User ||--o{ Activity : "performs"
+    User ||--o{ Feedback : "submits"
+    User ||--o{ PushSubscription : "subscribes"
 ```
 
 ---
@@ -321,30 +381,30 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     Note over C,DB: 🔐 Login Flow
-    C->>F: Enter email + password
+    C->>F: Enter email / username / studentId + password
     F->>A: POST /api/auth/login
-    A->>DB: Find user by email/username/studentId
+    A->>DB: Find user by email / username / studentId
     DB-->>A: User record
     A->>A: bcrypt.compare(password, hash)
-    A->>A: Generate accessToken (15min)
-    A->>A: Generate refreshToken (7d)
+    A->>A: Generate accessToken (30d)
+    A->>A: Generate refreshToken (60d)
     A-->>F: { accessToken, refreshToken, user }
     F->>F: Store tokens (Redux + localStorage)
-    F-->>C: Redirect to dashboard/home
+    F-->>C: Redirect to dashboard / home
 
     Note over C,DB: 🔑 Authenticated Request
     C->>F: Action (e.g., fetch books)
     F->>A: GET /api/books<br/>Authorization: Bearer {accessToken}
     A->>A: Verify JWT (authenticate middleware)
-    A->>DB: Fetch user + roles + permissions
+    A->>DB: Load user + roles + permissions
     A-->>F: { data: books[] }
 
     Note over C,DB: ♻️ Token Refresh (auto, on 401)
     F->>A: Request fails with 401
     F->>F: RTK Query baseQueryWithReauth
-    F->>A: POST /api/auth/refresh-token<br/>{ refreshToken }
+    F->>A: POST /api/auth/refresh<br/>{ refreshToken }
     A->>A: Verify refreshToken
-    A->>A: Generate new accessToken (15min)
+    A->>A: Generate new accessToken (30d)
     A-->>F: { accessToken (new) }
     F->>F: Update stored token
     F->>A: Retry original request with new token
@@ -417,21 +477,19 @@ flowchart TD
     
     CTRL --> RES["📤 Response"]
 
-    subgraph Roles["Roles (examples)"]
+    subgraph Roles["Predefined Roles"]
         direction LR
-        SA["superadmin<br/>(all permissions)"]
-        AD["admin<br/>(manage books, users)"]
+        AD["admin<br/>(full access)"]
         LB["librarian<br/>(manage books)"]
         US["user<br/>(read only)"]
     end
 
-    subgraph Permissions["Permissions (examples)"]
+    subgraph Permissions["Seeded Permissions"]
         direction LR
-        P1["manage_books"]
-        P2["manage_users"]
-        P3["manage_roles"]
-        P4["view_statistics"]
-        P5["manage_settings"]
+        P1["books.view / books.create<br/>books.update / books.delete / books.download"]
+        P2["users.view / users.create<br/>users.update / users.delete"]
+        P3["roles.view / roles.create<br/>roles.update / roles.delete"]
+        P4["permissions.view / permissions.assign"]
     end
 
     style REQ fill:#3b82f6,color:#fff
@@ -456,9 +514,9 @@ sequenceDiagram
 
     Note over C,R2: 📤 Upload Flow (Book PDF + Cover)
     C->>F: Select files in form
-    F->>A: POST /api/upload/single<br/>multipart/form-data<br/>(file + folder param)
+    F->>A: POST /api/uploads/single<br/>multipart/form-data<br/>(file + folder param)
     A->>M: Parse file (memory storage)
-    M->>M: Validate MIME type<br/>PDF: application/pdf (50MB)<br/>Image: image/* (5MB)
+    M->>M: Validate MIME type<br/>PDF: application/pdf (10MB)<br/>Image: JPEG/PNG/WebP (5MB)
     M-->>A: file buffer ready
     A->>R2: PutObjectCommand<br/>Key: {folder}/{timestamp}-{name}
     R2-->>A: { Key, ETag }
@@ -467,12 +525,12 @@ sequenceDiagram
 
     Note over C,R2: 📥 Download Flow (PDF)
     C->>F: Click "Read" or "Download"
-    F->>A: GET /api/books/:id/download<br/>Authorization: Bearer {token}
-    A->>A: Authenticate user
-    A->>R2: GetObjectCommand(pdfUrl key)
-    R2-->>A: Presigned URL (1hr expiry)
-    A-->>F: Redirect / stream PDF
+    F->>A: GET /api/books/:id/download<br/>Authorization: Bearer {token} or ?token=
+    A->>A: authenticateStream middleware
+    A->>R2: GetObject → stream PDF
+    R2-->>A: PDF binary stream
     A->>A: Record download in DB
+    A-->>F: Streamed PDF (piped response)
     F-->>C: PDF opens in reader / downloads
 ```
 
@@ -560,48 +618,59 @@ graph LR
     API --> PUB["/publishers"]
     API --> AUT["/authors"]
     API --> EDT["/editors"]
-    API --> UPL["/upload"]
-    API --> STAT["/statistics"]
+    API --> UPL["/uploads"]
+    API --> STAT["/stats"]
     API --> ACT["/activities"]
-    API --> AI["/ai"]
+    API --> AI["/ai/recommendations"]
     API --> SET["/settings"]
-    API --> DL["/download"]
+    API --> DL["/downloads"]
+    API --> REV["/reviews"]
+    API --> PUSH["/push"]
+    API --> FB["/feedback"]
 
     AUTH --> A1["POST /register"]
     AUTH --> A2["POST /login"]
-    AUTH --> A3["POST /refresh-token"]
-    AUTH --> A4["GET /profile"]
-    AUTH --> A5["PATCH /profile"]
-    AUTH --> A6["POST /change-password"]
-    AUTH --> A7["POST /forgot-password"]
-    AUTH --> A8["POST /verify-otp"]
-    AUTH --> A9["POST /reset-password"]
+    AUTH --> A3["POST /refresh"]
+    AUTH --> A4["POST /logout"]
+    AUTH --> A5["GET /me  ·  GET /profile"]
+    AUTH --> A6["PATCH /profile"]
+    AUTH --> A7["POST /avatar  ·  GET /avatar"]
+    AUTH --> A8["PUT /change-password"]
+    AUTH --> A9["POST /forgot-password"]
+    AUTH --> A10["POST /verify-otp"]
+    AUTH --> A11["POST /reset-password"]
+    AUTH --> A12["POST /2fa/setup  ·  /2fa/verify<br/>/2fa/disable  ·  /2fa/status"]
+    AUTH --> A13["GET /google  ·  GET /facebook<br/>GET /github  (OAuth)"]
 
-    BOOKS --> B1["GET / (list + search)"]
-    BOOKS --> B2["GET /:id"]
+    BOOKS --> B1["GET / (list + search + filter)"]
+    BOOKS --> B2["GET /:id  ·  GET /:id/summary"]
     BOOKS --> B3["POST / (create)"]
     BOOKS --> B4["PUT /:id (update)"]
-    BOOKS --> B5["DELETE /:id (soft)"]
+    BOOKS --> B5["DELETE /:id (soft-delete)"]
     BOOKS --> B6["GET /:id/cover"]
-    BOOKS --> B7["GET /:id/download"]
+    BOOKS --> B7["GET /:id/stream (public PDF proxy)"]
+    BOOKS --> B8["GET /:id/pdf-url  ·  /video-url  ·  /audio-url"]
+    BOOKS --> B9["GET /:id/download (auth + record)"]
+    BOOKS --> B10["POST /scan-search (AI cover scan)"]
+    BOOKS --> B11["GET /:bookId/reviews  ·  POST /:bookId/reviews"]
 
-    AI --> AI1["POST /recommend/category"]
-    AI --> AI2["POST /recommend/title"]
-    AI --> AI3["POST /recommend/personal"]
-    AI --> AI4["GET /trending"]
-    AI --> AI5["POST /similar"]
-    AI --> AI6["POST /chat"]
+    AI --> AI1["GET / (by category or bookTitle or userId)"]
+    AI --> AI2["GET /trending"]
+    AI --> AI3["GET /similar/:bookId"]
+    AI --> AI4["POST /personalized"]
+    AI --> AI5["POST /chat"]
 
     UPL --> U1["POST /single"]
     UPL --> U2["POST /multiple"]
-    UPL --> U3["DELETE /"]
-    UPL --> U4["GET /presigned-url"]
+    UPL --> U3["DELETE /delete"]
 
     style API fill:#3b82f6,color:#fff
     style AUTH fill:#ef4444,color:#fff
     style BOOKS fill:#10b981,color:#fff
     style AI fill:#8b5cf6,color:#fff
     style UPL fill:#f97316,color:#fff
+    style REV fill:#06b6d4,color:#fff
+    style FB fill:#f59e0b,color:#fff
 ```
 
 ---
@@ -801,37 +870,326 @@ sequenceDiagram
 
     Note over A,R2: 📚 Create New Book
     A->>D: Fill book form<br/>(title, ISBN, authors, category,<br/>description, cover, PDF)
-    D->>API: POST /api/upload/single<br/>(cover image)
-    API->>R2: Upload cover → covers/{file}
+    D->>API: POST /api/uploads/single<br/>(cover image, folder: books/covers)
+    API->>R2: Upload cover → books/covers/{file}
     R2-->>API: coverUrl
     API-->>D: { url: coverUrl }
     
-    D->>API: POST /api/upload/single<br/>(PDF file)
-    API->>R2: Upload PDF → pdfs/{file}
+    D->>API: POST /api/uploads/single<br/>(PDF file, folder: books/pdfs)
+    API->>R2: Upload PDF → books/pdfs/{file}
     R2-->>API: pdfUrl
     API-->>D: { url: pdfUrl }
     
-    D->>API: POST /api/books<br/>{ title, isbn, coverUrl, pdfUrl,<br/>authorIds[], categoryId, ... }
+    D->>API: POST /api/books<br/>{ title, isbn, cover_url, pdf_url,<br/>authorIds[], categoryId, departmentId, typeId, ... }
     API->>DB: Book.create(data)
-    API->>DB: BookAuthor.bulkCreate(...)
-    API->>DB: Activity.create({ action: 'CREATE' })
+    API->>DB: BooksAuthors.bulkCreate(...)
+    API->>DB: Activity.create({ action: 'created', target_type: 'book' })
     DB-->>API: Book record
-    API-->>D: { book }
+    API-->>D: { success: true, data: { book } }
     D-->>A: ✅ Success toast + redirect to list
 
     Note over A,R2: 📖 Student Reads Book
     A->>D: Click book → Read
     D->>API: GET /api/books/:id
-    API->>DB: Book.findByPk (eager load authors, category)
-    API->>DB: Book.increment('viewCount')
+    API->>DB: Book.findByPk (eager-load authors, category, publisher, etc.)
+    API->>DB: Book.increment('views')
     DB-->>API: Book with associations
-    API-->>D: { book }
-    D->>API: GET /api/proxy/pdf?url={pdfUrl}
-    API->>R2: GetObject (follow redirect)
+    API-->>D: { success: true, data: { book } }
+    D->>API: GET /api/books/:id/stream (public PDF proxy)
+    API->>R2: GetObject → stream PDF binary
     R2-->>API: PDF binary stream
-    API-->>D: PDF stream (piped)
+    API-->>D: PDF stream (piped, Content-Type: application/pdf)
     D-->>A: PDF renders in @react-pdf-viewer
 ```
+
+---
+
+## 16. Two-Factor Authentication Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant F as Frontend
+    participant A as Backend API
+    participant DB as PostgreSQL
+    participant AUTH as Authenticator App
+
+    Note over U,AUTH: 🔐 2FA Setup (TOTP)
+    U->>F: Enable 2FA in settings
+    F->>A: POST /api/auth/2fa/setup
+    A->>A: Generate TOTP secret
+    A->>DB: Save encrypted secret (pending)
+    A-->>F: { qrCodeUrl, secret }
+    F-->>U: Show QR code
+
+    U->>AUTH: Scan QR code
+    AUTH-->>U: Shows 6-digit TOTP code
+
+    U->>F: Enter TOTP code to verify
+    F->>A: POST /api/auth/2fa/verify-setup<br/>{ token }
+    A->>A: Verify TOTP code
+    A->>DB: Mark 2FA as enabled
+    A-->>F: { message: "2FA enabled", recoveryCodes }
+    F-->>U: ✅ 2FA active
+
+    Note over U,AUTH: 🔑 Login with 2FA
+    U->>F: Login (email + password)
+    F->>A: POST /api/auth/login
+    A->>A: Verify password ✅
+    A->>A: 2FA enabled? → issue tempToken (5min)
+    A-->>F: { requires2FA: true, tempToken }
+    F-->>U: Show 2FA code input
+
+    U->>AUTH: Read current TOTP code
+    U->>F: Enter 6-digit code
+    F->>A: POST /api/auth/2fa/verify<br/>{ tempToken, token }
+    A->>A: Verify TOTP against secret
+    A->>A: Generate accessToken (30d) + refreshToken (60d)
+    A-->>F: { accessToken, refreshToken, user }
+    F-->>U: ✅ Logged in
+
+    Note over U,AUTH: 🔓 Disable 2FA
+    U->>F: Disable 2FA
+    F->>A: POST /api/auth/2fa/disable<br/>{ token } (Bearer)
+    A->>A: Verify TOTP + clear secret
+    A->>DB: Set 2FA disabled
+    A-->>F: { message: "2FA disabled" }
+```
+
+---
+
+## 17. Reviews & Feedback Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant F as Frontend
+    participant A as Backend API
+    participant DB as PostgreSQL
+
+    Note over U,DB: ⭐ Book Review
+    U->>F: Open book detail page
+    F->>A: GET /api/books/:bookId/reviews
+    A->>DB: Review.findAll (not deleted, with user info)
+    DB-->>A: Reviews with avg rating
+    A-->>F: { reviews[], averageRating, reviewCount }
+    F-->>U: Show rating + reviews
+
+    U->>F: Submit rating (1–5) + comment
+    F->>A: POST /api/books/:bookId/reviews<br/>Bearer {accessToken}<br/>{ rating, comment }
+    A->>A: Authenticate user
+    A->>DB: Check existing review (partial unique index)
+    A->>DB: Review.create({ bookId, userId, rating, comment })
+    DB-->>A: Review record
+    A-->>F: { success: true, data: { review } }
+    F-->>U: ✅ Review posted
+
+    Note over U,DB: 📬 User Feedback
+    U->>F: Submit feedback (contact form)
+    F->>A: POST /api/feedback<br/>{ type, subject, message, name?, email? }
+    A->>DB: Feedback.create(data)
+    DB-->>A: Feedback record
+    A-->>F: { success: true, message: "Feedback submitted" }
+    F-->>U: ✅ Thank you message
+```
+
+---
+
+---
+
+## 18. Use Case Diagram
+
+> តួអង្គ (Actors): **Student / User**, **Librarian**, **Admin**  
+> Use-case ខាងក្រោមបង្ហាញពីសិទ្ធិ និងសកម្មភាពរបស់តួអង្គនីមួយៗក្នុងប្រព័ន្ធបណ្ណាល័យ Norton E-Library។
+
+```mermaid
+flowchart LR
+    STU(["👩‍🎓 Student / User"])
+    LIB(["📚 Librarian"])
+    ADM(["👨‍💼 Admin"])
+
+    subgraph AUTH_UC["🔐 Authentication"]
+        UC1["Register / Sign Up"]
+        UC2["Login (email · username · studentId)"]
+        UC3["Forgot Password (OTP via Email)"]
+        UC4["Change Password"]
+        UC5["OAuth Login (Google · Facebook · GitHub)"]
+        UC6["Two-Factor Authentication (TOTP)"]
+    end
+
+    subgraph BOOK_UC["📖 Book Access"]
+        UC7["Browse & Search Books"]
+        UC8["Filter by Category / Department / Type"]
+        UC9["View Book Detail & Metadata"]
+        UC10["Read PDF Online"]
+        UC11["Download PDF (authenticated)"]
+        UC12["Add to Favorites"]
+        UC13["View Personal Library & History"]
+        UC14["Track Reading Progress"]
+        UC15["Get AI Book Recommendations"]
+        UC16["Visual Book Cover Scan Search"]
+    end
+
+    subgraph SOCIAL_UC["💬 Social & Feedback"]
+        UC17["Submit Book Review & Rating"]
+        UC18["Submit Feedback / Bug Report"]
+        UC19["Subscribe to Push Notifications"]
+        UC20["Share Book Link"]
+    end
+
+    subgraph PROFILE_UC["👤 Profile"]
+        UC21["View / Edit Profile"]
+        UC22["Upload Avatar"]
+        UC23["View Roles & Permissions"]
+    end
+
+    subgraph LIB_UC["🗂️ Library Management (Librarian)"]
+        UC24["Create / Edit / Delete Books"]
+        UC25["Upload Book Cover & PDF to R2"]
+        UC26["Manage Categories · Departments · Material Types"]
+        UC27["Manage Authors · Editors · Publishers"]
+        UC28["View Download Statistics"]
+        UC29["View Activity Log"]
+        UC30["Manage Feedback"]
+        UC31["Scan Student Code ID (Check-in / Check-out)"]  
+    end
+
+    subgraph ADMIN_UC["⚙️ Administration (Admin Only)"]
+        UC32["Manage Users (CRUD + Roles + Permissions)"]
+        UC33["Manage Roles & Permissions"]
+        UC34["View Full Dashboard Analytics"]
+        UC35["Configure System Settings"]
+        UC36["Approve Students into Library System"]
+        UC37["Review Staff Activity & Work"]
+        UC38["Review Book Return Approvals"]
+        UC39["Review Library Payment Records"]
+        UC40["Review Student Check-in / Check-out Data"]
+    end
+
+    %% Student associations
+    STU --- UC1 & UC2 & UC3 & UC4 & UC5 & UC6
+    STU --- UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13 & UC14 & UC15 & UC16
+    STU --- UC17 & UC18 & UC19 & UC20
+    STU --- UC21 & UC22 & UC23
+
+    %% Librarian extends Student + adds Library Mgmt
+    LIB --- UC1 & UC2 & UC4 & UC6
+    LIB --- UC7 & UC9 & UC10 & UC11
+    LIB --- UC21 & UC22
+    LIB --- UC24 & UC25 & UC26 & UC27 & UC28 & UC29 & UC30 & UC31
+
+    %% Admin extends Librarian + adds Administration
+    ADM --- UC1 & UC2 & UC4 & UC6
+    ADM --- UC7 & UC9 & UC10 & UC11
+    ADM --- UC21 & UC22
+    ADM --- UC24 & UC25 & UC26 & UC27 & UC28 & UC29 & UC30 & UC31
+    ADM --- UC32 & UC33 & UC34 & UC35 & UC36 & UC37 & UC38 & UC39 & UC40
+
+    style STU fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    style LIB fill:#10b981,stroke:#059669,color:#fff
+    style ADM fill:#8b5cf6,stroke:#6d28d9,color:#fff
+    style AUTH_UC fill:#fef9c3,stroke:#ca8a04
+    style BOOK_UC fill:#dcfce7,stroke:#16a34a
+    style SOCIAL_UC fill:#e0f2fe,stroke:#0284c7
+    style PROFILE_UC fill:#fce7f3,stroke:#be185d
+    style LIB_UC fill:#fff7ed,stroke:#c2410c
+    style ADMIN_UC fill:#f3e8ff,stroke:#7c3aed
+```
+
+### ពន្យល់ Use Case តាមតួអង្គ (Actor Descriptions)
+
+| Actor | ភាសាខ្មែរ | Use Cases |
+|---|---|---|
+| **Student / User** | និស្សិត / អ្នកប្រើប្រាស់ | UC1–UC23 — ចូលប្រើ, អាន, ទាញយក, ស្វែងរក, សម្គាល់ប្រវត្តិ, Review |
+| **Librarian** | បណ្ណារក្ស | UC1–UC4, UC6–UC11, UC21–UC31 — គ្រប់គ្រងសៀវភៅ, CategMap, Upload, Scan Code ID |
+| **Admin** | អ្នកគ្រប់គ្រង | UC1–UC4, UC6–UC11, UC21–UC40 — គ្រប់ UC ទាំងអស់ + Users + Roles + Analytics + Approve |
+
+---
+
+## 19. DFD Level 0 — Context Diagram
+
+> DFD Level 0 (Context Diagram) បង្ហាញពីប្រព័ន្ធ Norton E-Library ជាដំណើរការ (Process) តែមួយ  
+> ជាមួយនឹងតួអង្គខាងក្រៅ (External Entities) ទាំងអស់ ដែលបញ្ជូន និងទទួលទិន្នន័យ។
+
+```mermaid
+flowchart TB
+    subgraph EXT_USERS["👥 External Actors"]
+        STU(["👩‍🎓 Student / User"])
+        LIB(["📚 Librarian"])
+        ADM(["👨‍💼 Admin"])
+    end
+
+    subgraph EXT_SVC["🔌 External Services"]
+        R2(["☁️ Cloudflare R2\nFile Storage"])
+        GEMINI(["🤖 Google Gemini AI\nRecommendations & Chat"])
+        SMTP(["📧 Gmail SMTP\nOTP Emails"])
+        VS(["🔍 Vector Search\nMicroservice"])
+        SENTRY(["🐛 Sentry\nError Monitoring"])
+        OAUTH(["🔑 OAuth Providers\nGoogle · Facebook · GitHub"])
+    end
+
+    SYSTEM["⚙️ Norton E-Library System\n\n• Authentication & RBAC\n• Book Management\n• PDF Streaming\n• AI Recommendations\n• Reviews & Feedback\n• Push Notifications\n• Activity Logging\n• Statistics & Analytics\n• Check-in / Check-out (Code ID)"]
+
+    %% Student flows
+    STU -- "Register · Login · Search · Read\nDownload · Review · Feedback\nProfile · Favorites · OTP" --> SYSTEM
+    SYSTEM -- "Books · PDF · Recommendations\nAuth Tokens · Notifications\nReading History · Stats" --> STU
+
+    %% Librarian flows
+    LIB -- "Book CRUD · File Upload\nCategory / Author / Publisher Mgmt\nScan Student Code ID" --> SYSTEM
+    SYSTEM -- "Dashboard Stats · Activity Log\nDownload Reports · Feedback Data\nCheck-in / Check-out Records" --> LIB
+
+    %% Admin flows
+    ADM -- "User Mgmt · Role & Permission Mgmt\nSystem Settings · Approve Students\nReview Returns · Review Payments\nReview Staff Activity" --> SYSTEM
+    SYSTEM -- "Full Analytics · User Reports\nPayment Records · Staff Logs\nStudent Entry / Exit Data" --> ADM
+
+    %% External service flows
+    SYSTEM -- "PutObject (cover / pdf / avatar)" --> R2
+    R2 -- "Presigned URLs · PDF Stream" --> SYSTEM
+
+    SYSTEM -- "Book catalog context + prompt" --> GEMINI
+    GEMINI -- "Ranked recommendations · Chat reply" --> SYSTEM
+
+    SYSTEM -- "OTP HTML email" --> SMTP
+    SMTP -- "Delivery status" --> SYSTEM
+
+    SYSTEM -- "Index cover vector on book create/update" --> VS
+    VS -- "Matched books + similarity score" --> SYSTEM
+
+    SYSTEM -- "Errors & exceptions" --> SENTRY
+    OAUTH -- "OAuth token + user profile" --> SYSTEM
+    SYSTEM -- "OAuth redirect URL" --> OAUTH
+
+    style SYSTEM fill:#1e293b,stroke:#3b82f6,color:#fff,font-size:13px
+    style STU fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    style LIB fill:#10b981,stroke:#059669,color:#fff
+    style ADM fill:#8b5cf6,stroke:#6d28d9,color:#fff
+    style R2 fill:#f97316,stroke:#ea580c,color:#fff
+    style GEMINI fill:#4285f4,stroke:#1a73e8,color:#fff
+    style SMTP fill:#ef4444,stroke:#dc2626,color:#fff
+    style VS fill:#06b6d4,stroke:#0891b2,color:#fff
+    style SENTRY fill:#362d59,stroke:#6c5fc7,color:#fff
+    style OAUTH fill:#f59e0b,stroke:#d97706,color:#fff
+```
+
+### ពន្យល់ DFD Level 0 — Data Flows
+
+| Flow | From | To | Data |
+|---|---|---|---|
+| ចូលប្រព័ន្ធ (Login) | Student / Librarian / Admin | System | Credentials, Token refresh |
+| ស្វែងរក & អានសៀវភៅ | Student | System | Search query, Book ID |
+| ទទួលសៀវភៅ | System | Student | Book metadata, PDF stream, Cover URL |
+| គ្រប់គ្រងសៀវភៅ (CRUD) | Librarian / Admin | System | Book data, File uploads |
+| ចូល / ចេញបណ្ណាល័យ (Process 14) | Librarian (Scan) | System | Student Code ID, Timestamp |
+| យល់ព្រមនិស្សិត (Process 10) | Admin | System | Student approval decision |
+| ពិនិត្យការសងសៀវភៅ (Process 11) | Admin | System | Return confirmation |
+| ពិនិត្យការបង់លុយ (Process 12) | Admin | System | Payment record review |
+| ពិនិត្យទិន្នន័យចូល/ចេញ (Process 13) | Admin | System | Check-in/out log query |
+| រក្សាទុកឯកសារ | System | Cloudflare R2 | PDF, Cover image, Avatar |
+| AI Recommendations | System | Google Gemini | Book catalog → ranked list |
+| OTP Email | System | Gmail SMTP | 6-digit OTP for password reset |
+| Vector Search | System | Vector Microservice | Cover image embed → matches |
 
 ---
 

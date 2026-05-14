@@ -1,6 +1,6 @@
 # 📋 Feature Request Backlog — Norton E-Library
 
-> **Last updated:** 2026-05-08 (Sprint 18)
+> **Last updated:** 2026-05-13 (Sprint 19)
 > **Source:** Student feedback (contact form), admin observations, stakeholder meetings
 > **Prioritization:** MoSCoW (Must / Should / Could / Won't) × Impact–Effort matrix
 
@@ -36,6 +36,7 @@
 | F-008 | **Download for offline reading** | Allow PDF download (with watermark) for verified students, track download count | 3d | ⚡ Medium | 📋 Planned |
 | F-009 | **Email digest — weekly new books** | Automated weekly email with newly added books matching student's department | 2d | ⚡ Medium | 📋 Planned |
 | F-010 | **Dashboard — feedback analytics** | Charts for feedback trends over time, avg rating, response time metrics | 2d | ⚡ Medium | 📋 Planned |
+| F-020 | **Social login (Google / Facebook / GitHub)** | OAuth2 social providers alongside email/password — Google, Facebook, GitHub | 3d | ⚡ Medium–High | ✅ Done (v1.1) |
 
 ## 🟡 P2 — Could Have
 
@@ -55,7 +56,6 @@
 | # | Feature | Description | Reason |
 |---|---------|-------------|--------|
 | F-019 | **Audio books / TTS** | Text-to-speech for PDFs using browser Speech API | Low demand, complex |
-| F-020 | **Social login (Google/Facebook)** | OAuth2 social providers alongside email/password | Security review needed |
 | F-021 | **Mobile app (React Native)** | Native iOS/Android app with offline sync | Scope too large, PWA sufficient |
 | F-022 | **Physical book reservation** | Reserve physical library books through the app | Requires hardware integration |
 | F-023 | **Plagiarism checker** | Upload paper to check against book database | Third-party API cost |
@@ -95,6 +95,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-05-13 | Updated DIAGRAM.md to v2.0: ERD reflects Review, Feedback, PushSubscription models; API route structure updated to match actual routes (`/uploads`, `/stats`, `/downloads`, `/ai/recommendations`); auth token expiry corrected to 30d/60d; RBAC roles & permissions updated to match seeded data; 2FA and Reviews/Feedback flow diagrams added. F-020 social login moved from Won't Have → Done (v1.1) — OAuth for Google, Facebook, GitHub fully implemented. |
 | 2026-05-08 | Project reaches 100% completion (237/237 tasks). Stable v1.1 in production. Phase 7 monitoring confirmed green — Sentry error rate nominal, DB stable at 18 MB / 70 indexes, all critical user-reported bugs resolved. All developer workloads at 100%. Backlog reprioritized for v2.0 sprint planning. |
 | 2026-04-19 | Postman collection shipped (`E-Library-API.postman_collection.json`, 80+ requests). `aiRecommendations` route mount bug fixed. Token security reviewed (deferred). Task 5.1.7 ✅. |
 | 2026-04-18 | Updated F-001, F-002, F-003 to Done — shipped in v1.0 (personal library + push notifications). DB migrated to new Render instance (`nu_elibrary_db_nvwp`). |

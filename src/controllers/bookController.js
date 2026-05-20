@@ -51,7 +51,7 @@ class BookController {
     try {
       const {
         page = 1, limit = 10,
-        search, categoryId, publisherId, departmentId, typeId,
+        search, categoryId, categoryName, publisherId, departmentId, typeId,
         publicationYear, yearFrom, yearTo, language, authorId,
         isActive, hasVideo, hasAudio, sortBy = 'created_at', sortOrder = 'DESC',
       } = req.query;
@@ -60,11 +60,21 @@ class BookController {
       const limitNum = Math.min(100, Math.max(1, Number(limit)));
       const offset   = (pageNum - 1) * limitNum;
 
-      // ── Dynamic WHERE ──────────────────────────────────────────────────
+      // ── Dynamic WHERE 
       const where = { isDeleted: false };
 
-      if (isActive !== undefined)  where.isActive        = String(isActive) === 'true';
-      if (categoryId)              where.categoryId      = categoryId;
+      // Resolve category: accept either categoryId (UUID) or categoryName (string)
+      let resolvedCategoryId = categoryId;
+      if (!resolvedCategoryId && categoryName) {
+        const cat = await Category.findOne({
+          where: { name: { [Op.iLike]: categoryName } },
+          attributes: ['id'],
+        });
+        resolvedCategoryId = cat?.id ?? null;
+      }
+
+      if (isActive !== undefined)   where.isActive    = String(isActive) === 'true';
+      if (resolvedCategoryId)       where.categoryId  = resolvedCategoryId;
       if (publisherId)             where.publisherId     = publisherId;
       if (departmentId)            where.departmentId    = departmentId;
       if (typeId)                  where.typeId          = typeId;
@@ -87,10 +97,30 @@ class BookController {
 
       if (search) {
         const term = `%${search}%`;
+        // Find book IDs whose authors match the search term
+        const { BookAuthor } = require('../models');
+        const matchingAuthors = await Author.findAll({
+          where: { name: { [Op.iLike]: term } },
+          attributes: ['id'],
+          raw: true,
+        });
+        let authorBookIds = [];
+        if (matchingAuthors.length) {
+          const rows = await BookAuthor.findAll({
+            where: { author_id: { [Op.in]: matchingAuthors.map(a => a.id) } },
+            attributes: ['book_id'],
+            raw: true,
+          });
+          authorBookIds = rows.map(r => r.book_id);
+        }
+
+        const yearNum = Number(search);
         where[Op.or] = [
           { title:   { [Op.iLike]: term } },
           { titleKh: { [Op.iLike]: term } },
           { isbn:    { [Op.iLike]: term } },
+          ...(Number.isInteger(yearNum) && yearNum > 0 ? [{ publicationYear: yearNum }] : []),
+          ...(authorBookIds.length ? [{ id: { [Op.in]: authorBookIds } }] : []),
         ];
       }
 

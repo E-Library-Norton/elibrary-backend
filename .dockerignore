@@ -19,9 +19,16 @@ yarn-error.log*
 .idea
 *.swp
 
-# ─── Logs & uploads (runtime data, not part of image) ────────────────────────
+# ─── Logs & runtime data (not part of image) ─────────────────────────────────
 logs/
-uploads/backups/
+uploads/
+backups/
+books/
+
+# ─── Shell scripts (only entrypoint is needed inside the image) ──────────────
+*.sh
+!docker-entrypoint.sh
+
 # ─── Docker itself ────────────────────────────────────────────────────────────
 Dockerfile
 docker-compose*.yml
@@ -30,3 +37,8 @@ docker-compose*.yml
 # ─── Postman / docs ──────────────────────────────────────────────────────────
 *.postman_collection.json
 README.md
+BACKLOG.md
+DIAGRAM.md
+PLAN.md
+PRD.md
+TASKS.md

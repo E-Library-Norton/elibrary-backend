@@ -41,8 +41,9 @@ services:
       dockerfile: Dockerfile
     container_name: elibrary-api
     restart: unless-stopped
+    # Create .env.docker from .env.docker.example and fill in your secrets
     env_file:
-      - .env.local
+      - .env.docker
     depends_on:
       db:
         condition: service_healthy
@@ -52,9 +53,9 @@ services:
       NODE_ENV:                production
       PORT:                    5005
 
-      # ── Database (Render managed PostgreSQL — SSL required) ────────────
-      DATABASE_URL: postgresql://nu_elibrary_db_nvwp_user:zzLVgQV0KU6OXiZ0znDaEmRFnDo90eki@dpg-d7h07ej7uimc73d1o6qg-a.singapore-postgres.render.com/nu_elibrary_db_nvwp
-      DB_SSL:                  true
+      # ── Database — local Docker db service (no SSL on internal network) ─
+      DATABASE_URL: postgresql://${POSTGRES_USER:-elibrary}:${POSTGRES_PASSWORD:-elibrary_secret}@db:5432/${POSTGRES_DB:-nu_elibrary_db}
+      DB_SSL:                  "false"
 
       # ── Auth secrets ────────────────────────────────────────────────────
       ACCESS_TOKEN_SECRET:     ${ACCESS_TOKEN_SECRET}
@@ -87,6 +88,18 @@ services:
       VAPID_PUBLIC_KEY:        ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY:       ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT:           ${VAPID_SUBJECT:-}
+
+      # ── URLs (OAuth callbacks) ─────────────────────────────────────────
+      BACKEND_URL:             ${BACKEND_URL:-http://localhost:5005}
+      FRONTEND_URL:            ${FRONTEND_URL:-http://localhost:3000}
+
+      # ── OAuth Social Login ─────────────────────────────────────────────
+      GOOGLE_CLIENT_ID:        ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET:    ${GOOGLE_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID:         ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET:     ${FACEBOOK_APP_SECRET:-}
+      GITHUB_CLIENT_ID:        ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET:    ${GITHUB_CLIENT_SECRET:-}
 
     volumes:
       # Persist uploaded files across container restarts

@@ -4,7 +4,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Stage 1: Install dependencies ─────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 # Security: add dumb-init for proper signal handling (PID 1 problem)
 # netcat-openbsd is required by docker-entrypoint.sh to wait for PostgreSQL

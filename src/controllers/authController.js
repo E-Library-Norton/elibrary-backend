@@ -223,11 +223,18 @@ class AuthController {
   static async changePassword(req, res, next) {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
-      if (newPassword !== confirmPassword) throw new ValidationError('New passwords do not match');
+      if (!newPassword || newPassword.length < 8) {
+        throw new ValidationError('New password must be at least 8 characters');
+      }
+      if (newPassword !== confirmPassword) {
+        throw new ValidationError('New passwords do not match');
+      }
 
       const user = await User.findByPk(req.user.id);
       if (!user) throw new NotFoundError('User not found');
-      if (!(await user.validatePassword(currentPassword))) throw new ValidationError('Current password is incorrect');
+      if (!(await user.validatePassword(currentPassword))) {
+        throw new ValidationError('Current password is incorrect');
+      }
 
       await user.update({ password: newPassword });
       return ResponseFormatter.success(res, null, 'Password changed successfully');
@@ -317,7 +324,7 @@ class AuthController {
       if (!resetToken) throw new ValidationError('Reset token is required');
       if (!password)   throw new ValidationError('New password is required');
       if (password !== confirmPassword) throw new ValidationError('Passwords do not match');
-      if (password.length < 6) throw new ValidationError('Password must be at least 6 characters');
+      if (password.length < 8) throw new ValidationError('Password must be at least 8 characters');
 
       const decoded = jwt.decode(resetToken);
       if (!decoded?.id) throw new AuthenticationError('Invalid reset token');

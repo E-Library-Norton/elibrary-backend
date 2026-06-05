@@ -326,10 +326,9 @@ class StatsController {
             }
 
             // 6. Category distribution + views
-            const top5ByCnt = [...catViewRows]
-                .sort((a, b) => (parseInt(b.book_count) || 0) - (parseInt(a.book_count) || 0))
-                .slice(0, 5);
-            let categoryDistribution = top5ByCnt.map(r => ({
+            const sortedByCnt = [...catViewRows]
+                .sort((a, b) => (parseInt(b.book_count) || 0) - (parseInt(a.book_count) || 0));
+            let categoryDistribution = sortedByCnt.map(r => ({
                 name: r.Category?.name || r['Category.name'] || 'Unknown',
                 value: parseInt(r.book_count) || 0,
             }));

@@ -11,6 +11,7 @@ router.get ('/',           BookController.getAll);
 router.post('/scan-search', uploadScan, BookController.scanSearch);
 router.get ('/:id',        BookController.getById);
 router.get ('/:id/summary', BookController.getSummary); // AI summary (Gemini, cached 24 h)
+router.post('/:id/share',   BookController.incrementShare);
 
 
 router.get('/:id/cover',    DownloadController.getCover);                            

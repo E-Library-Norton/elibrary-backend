@@ -68,6 +68,11 @@ const Book = sequelize.define(
       allowNull:    false,
       defaultValue: 0,
     },
+    shares: {
+      type:         DataTypes.INTEGER,
+      allowNull:    false,
+      defaultValue: 0,
+    },
     language: {
       type:         DataTypes.STRING(10),
       allowNull:    true,

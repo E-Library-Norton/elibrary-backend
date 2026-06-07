@@ -690,6 +690,23 @@ Requirements: exactly 3 sentences, academic tone, no first person, mention the k
       return ResponseFormatter.success(res, { summary }, 'Book summary generated');
     } catch (err) { next(err); }
   }
+
+  // ── POST /api/books/:id/share
+  static async incrementShare(req, res, next) {
+    try {
+      const book = await Book.findOne({ where: { id: req.params.id, isDeleted: false } });
+      if (!book) throw new NotFoundError('Book not found');
+
+      await book.increment('shares');
+
+      const updatedBook = await Book.findOne({
+        where: { id: book.id },
+        attributes: ['id', 'shares'],
+      });
+
+      return ResponseFormatter.success(res, { shares: updatedBook?.shares ?? 0 }, 'Share count incremented successfully');
+    } catch (err) { next(err); }
+  }
 }
 
 module.exports = BookController;

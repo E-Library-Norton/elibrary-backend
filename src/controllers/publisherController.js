@@ -44,7 +44,7 @@ class PublisherController {
       const publisher = await Publisher.create({ name: name.trim(), nameKh, address, contactEmail });
 
       await logActivity({
-        userId: req.user.id,
+        userId: req.user?.id || null,
         action: "created",
         targetType: "publisher",
         targetId: publisher.id,
@@ -75,7 +75,7 @@ class PublisherController {
       });
 
       await logActivity({
-        userId: req.user.id,
+        userId: req.user?.id || null,
         action: "updated",
         targetType: "publisher",
         targetId: publisher.id,
@@ -96,7 +96,7 @@ class PublisherController {
       await publisher.destroy();
 
       await logActivity({
-        userId: req.user.id,
+        userId: req.user?.id || null,
         action: "deleted",
         targetType: "publisher",
         targetId: publisher.id,

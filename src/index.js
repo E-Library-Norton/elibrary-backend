@@ -14,10 +14,6 @@ const { passport } = require('./config/passport');
 const app = express();
 const httpServer = http.createServer(app);
 
-// Render/Cloudflare terminate TLS and forward the real client IP.
-// express-rate-limit needs this to avoid ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
-app.set('trust proxy', 1);
-
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',

@@ -2,38 +2,22 @@ const nodemailer = require('nodemailer');
 
 function createTransporter() {
   const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
-  const port = Number(process.env.EMAIL_PORT || 587);
-  const secure = String(process.env.EMAIL_SECURE || 'false').toLowerCase() === 'true';
-  const requireTLS = String(process.env.EMAIL_REQUIRE_TLS || String(!secure)).toLowerCase() === 'true';
-  const connectionTimeout = Number(process.env.EMAIL_CONNECTION_TIMEOUT_MS || 30000);
-  const greetingTimeout = Number(process.env.EMAIL_GREETING_TIMEOUT_MS || 30000);
-  const socketTimeout = Number(process.env.EMAIL_SOCKET_TIMEOUT_MS || 45000);
-
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email service is not configured. Set EMAIL_USER and EMAIL_PASS.');
-  }
+  const port = Number(process.env.EMAIL_PORT || 465);
+  const secure = String(process.env.EMAIL_SECURE || 'true').toLowerCase() === 'true';
 
   return nodemailer.createTransport({
     host,
     port,
     secure,
     family: 4,
-    requireTLS,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout,
-    greetingTimeout,
-    socketTimeout,
-    tls: {
-      servername: host,
-    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
-}
-
-function getFromAddress() {
-  return process.env.EMAIL_FROM || `"E-Library NU" <${process.env.EMAIL_USER}>`;
 }
 
 /**
@@ -43,7 +27,7 @@ async function sendOtpEmail(to, otp, firstName = 'Student') {
   const name = firstName || 'Student';
 
   await createTransporter().sendMail({
-    from: getFromAddress(),
+    from: `"E-Library NU" <${process.env.EMAIL_USER}>`,
     to,
     subject: `${otp} — Your E-Library NU password reset code`,
     html: `
@@ -126,7 +110,7 @@ async function sendPasswordResetEmail(to, resetLink, firstName = 'Student') {
   const name = firstName || 'Student';
 
   await createTransporter().sendMail({
-    from: getFromAddress(),
+    from: `"E-Library NU" <${process.env.EMAIL_USER}>`,
     to,
     subject: 'Reset your E-Library NU password',
     html: `

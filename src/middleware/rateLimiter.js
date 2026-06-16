@@ -3,6 +3,7 @@
 // ============================================
 
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = rateLimit;
 
 // General API rate limiter
 const apiLimiter = rateLimit({
@@ -45,7 +46,7 @@ const loginLimiter = rateLimit({
   keyGenerator: (req) => {
     // Key by IP + identifier so per-account brute-force is also tracked
     const identifier = (req.body && (req.body.email || req.body.username || req.body.studentId)) || '';
-    return `${req.ip}:${identifier.toLowerCase()}`;
+    return `${ipKeyGenerator(req.ip)}:${identifier.toLowerCase()}`;
   },
   message: {
     success: false,

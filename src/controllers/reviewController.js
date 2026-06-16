@@ -37,20 +37,20 @@ async function getBookReviewCount(bookId) {
 function buildReviewPayload(review, book, user) {
   return {
     review: {
-      id:        review.id,
-      bookId:    review.bookId,
-      userId:    review.userId,
-      rating:    review.rating,
-      comment:   review.comment,
+      id: review.id,
+      bookId: review.bookId,
+      userId: review.userId,
+      rating: review.rating,
+      comment: review.comment,
       createdAt: review.created_at || review.createdAt,
     },
-    bookId:    book?.id ?? review.bookId,
+    bookId: book?.id ?? review.bookId,
     bookTitle: book?.title ?? 'Unknown',
     bookCover: book?.coverUrl ?? null,
-    userName:  user ? `${user.firstName } ${user.lastName }`.trim() || user.username : 'A member',
+    userName: user ? `${user.firstName} ${user.lastName}`.trim() || user.username : 'A member',
     userAvatar: user?.avatar ?? null,
     averageRating: null, // filled async below
-    totalReviews:  null,
+    totalReviews: null,
   };
 }
 
@@ -61,16 +61,14 @@ function invalidateBookReviewCache(bookId) {
   reviewCache.invalidate('reviews', bookId);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 class ReviewController {
 
-  // ── GET /api/books/:bookId/reviews ──────────────────────────────────────────
+  // ── GET /api/books/:bookId/reviews 
   static async getByBook(req, res, next) {
     try {
       const { bookId } = req.params;
-      const page   = Math.max(1, Number(req.query.page)  || 1);
-      const limit  = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
       const book = await Book.findOne({ where: { id: bookId, isDeleted: false } });
@@ -93,18 +91,18 @@ class ReviewController {
       ]);
 
       return ResponseFormatter.success(res, {
-        reviews:       rows,
+        reviews: rows,
         averageRating: avgRating,
-        totalReviews:  count,
-        totalPages:    Math.ceil(count / limit),
-        currentPage:   page,
+        totalReviews: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
       });
     } catch (error) {
       next(error);
     }
   }
 
-  // ── POST /api/books/:bookId/reviews ─────────────────────────────────────────
+  // ── POST /api/books/:bookId/reviews 
   static async create(req, res, next) {
     try {
       const { bookId } = req.params;
@@ -141,7 +139,7 @@ class ReviewController {
         targetName: book.title,
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
-      }).catch(() => {});
+      }).catch(() => { });
 
       // Build rich notification payload with fresh stats
       const [avgRating, totalReviews] = await Promise.all([
@@ -151,7 +149,7 @@ class ReviewController {
 
       const payload = buildReviewPayload(full, book, full?.User);
       payload.averageRating = avgRating;
-      payload.totalReviews  = totalReviews;
+      payload.totalReviews = totalReviews;
 
       // Broadcast to admin + public (no duplication)
       emitBroadcast(EVENTS.REVIEW_CREATED, payload);
@@ -162,7 +160,7 @@ class ReviewController {
     }
   }
 
-  // ── PUT /api/reviews/:id ─────────────────────────────────────────────────────
+  // ── PUT /api/reviews/:id 
   static async update(req, res, next) {
     try {
       const { id } = req.params;
@@ -204,7 +202,7 @@ class ReviewController {
 
       const payload = buildReviewPayload(full, full?.Book, full?.User);
       payload.averageRating = avgRating;
-      payload.totalReviews  = totalReviews;
+      payload.totalReviews = totalReviews;
 
       emitToAdmin(EVENTS.REVIEW_UPDATED, payload);
 
@@ -214,7 +212,7 @@ class ReviewController {
     }
   }
 
-  // ── DELETE /api/reviews/:id ──────────────────────────────────────────────────
+  // ── DELETE /api/reviews/:id 
   static async delete(req, res, next) {
     try {
       const { id } = req.params;
@@ -247,11 +245,11 @@ class ReviewController {
         targetName: `Review #${review.id}`,
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
-      }).catch(() => {});
+      }).catch(() => { });
 
       // Emit with book context so dashboard can refresh
       emitToAdmin(EVENTS.REVIEW_DELETED, {
-        reviewId:  review.id,
+        reviewId: review.id,
         bookId,
         bookTitle: review.Book?.title ?? 'Unknown',
       });
@@ -262,12 +260,12 @@ class ReviewController {
     }
   }
 
-  // ── GET /api/reviews/my ─────────────────────────────────────────────────────
+  // ── GET /api/reviews/my 
   static async getMyReviews(req, res, next) {
     try {
       const userId = req.user.id;
-      const page   = Math.max(1, Number(req.query.page)  || 1);
-      const limit  = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
       const { count, rows } = await Review.findAndCountAll({
@@ -281,9 +279,9 @@ class ReviewController {
       });
 
       return ResponseFormatter.success(res, {
-        reviews:     rows,
-        total:       count,
-        totalPages:  Math.ceil(count / limit),
+        reviews: rows,
+        total: count,
+        totalPages: Math.ceil(count / limit),
         currentPage: page,
       });
     } catch (error) {
@@ -291,7 +289,7 @@ class ReviewController {
     }
   }
 
-  // ── GET /api/reviews/stats  (admin) ─────────────────────────────────────────
+  // ── GET /api/reviews/stats  (admin) 
   // Single query: GROUP BY rating gives us count-per-rating AND avg in one round-trip
   static async getStats(req, res, next) {
     try {
@@ -322,8 +320,8 @@ class ReviewController {
     }
   }
 
-  // ── GET /api/reviews  (admin — all reviews with filters) ────────────────────
-  // ── GET /api/reviews/public (no auth — homepage testimonials) ──────────────
+  // ── GET /api/reviews  (admin — all reviews with filters)
+  // ── GET /api/reviews/public (no auth — homepage testimonials) 
   static async getPublic(req, res, next) {
     try {
       const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
@@ -357,17 +355,17 @@ class ReviewController {
     }
   }
 
-  // ── GET /api/reviews (admin) ───────────────────────────────────────────────
+  // ── GET /api/reviews (admin) ──
   static async getAll(req, res, next) {
     try {
-      const page   = Math.max(1, Number(req.query.page)  || 1);
-      const limit  = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
       const where = { isDeleted: false };
-      if (req.query.bookId)  where.bookId = req.query.bookId;
-      if (req.query.userId)  where.userId = req.query.userId;
-      if (req.query.rating)  where.rating = Number(req.query.rating);
+      if (req.query.bookId) where.bookId = req.query.bookId;
+      if (req.query.userId) where.userId = req.query.userId;
+      if (req.query.rating) where.rating = Number(req.query.rating);
 
       const search = req.query.search?.trim();
 
@@ -397,13 +395,13 @@ class ReviewController {
       if (search) {
         // We need to join and filter: keep rows where Book title OR User username matches
         // Use subquery approach: fetch all matching IDs first
-        const bookIds   = (await Book.findAll({ where: { title: { [Op.iLike]: `%${search}%` } }, attributes: ['id'], raw: true })).map((b) => b.id);
-        const userIds   = (await User.findAll({
+        const bookIds = (await Book.findAll({ where: { title: { [Op.iLike]: `%${search}%` } }, attributes: ['id'], raw: true })).map((b) => b.id);
+        const userIds = (await User.findAll({
           where: {
             [Op.or]: [
-              { username:  { [Op.iLike]: `%${search}%` } },
+              { username: { [Op.iLike]: `%${search}%` } },
               { firstName: { [Op.iLike]: `%${search}%` } },
-              { lastName:  { [Op.iLike]: `%${search}%` } },
+              { lastName: { [Op.iLike]: `%${search}%` } },
             ],
           },
           attributes: ['id'],
@@ -428,9 +426,9 @@ class ReviewController {
       const { count, rows } = await Review.findAndCountAll(queryOptions);
 
       return ResponseFormatter.success(res, {
-        reviews:     rows,
-        total:       count,
-        totalPages:  Math.ceil(count / limit),
+        reviews: rows,
+        total: count,
+        totalPages: Math.ceil(count / limit),
         currentPage: page,
       });
     } catch (error) {

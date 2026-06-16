@@ -6,28 +6,28 @@ const Download = sequelize.define(
   "Download",
   {
     id: {
-      type:          DataTypes.BIGINT,
-      primaryKey:    true,
+      type: DataTypes.BIGINT,
+      primaryKey: true,
       autoIncrement: true,
     },
     userId: {
-      type:      DataTypes.BIGINT,
+      type: DataTypes.BIGINT,
       allowNull: false,
-      field:     'user_id',
+      field: 'user_id',
     },
     bookId: {
-      type:      DataTypes.BIGINT,
+      type: DataTypes.BIGINT,
       allowNull: false,
-      field:     'book_id',
+      field: 'book_id',
     },
     downloadedAt: {
-      type:         DataTypes.DATE,
-      allowNull:    false,
+      type: DataTypes.DATE,
+      allowNull: false,
       defaultValue: DataTypes.NOW,
-      field:        'downloaded_at',
+      field: 'downloaded_at',
     },
     ipAddress: {
-      type:  DataTypes.STRING(45),
+      type: DataTypes.STRING(45),
       field: 'ip_address',
     },
   },

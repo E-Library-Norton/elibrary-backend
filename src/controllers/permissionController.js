@@ -7,18 +7,18 @@ const { logActivity } = require("../utils/activityLogger");
 
 class PermissionController {
 
-  // ── GET /api/permissions ────────────────────────────────────────────────────
+  // ── GET /api/permissions 
   static async getAll(req, res, next) {
     try {
       const { search } = req.query;
 
       const where = search
         ? {
-            [Op.or]: [
-              { name: { [Op.iLike]: `%${search}%` } },
-              { description: { [Op.iLike]: `%${search}%` } },
-            ],
-          }
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${search}%` } },
+            { description: { [Op.iLike]: `%${search}%` } },
+          ],
+        }
         : {};
 
       const permissions = await Permission.findAll({
@@ -33,7 +33,7 @@ class PermissionController {
     }
   }
 
-  // ── GET /api/permissions/:id ────────────────────────────────────────────────
+  // ── GET /api/permissions/:id 
   static async getById(req, res, next) {
     try {
       const permission = await Permission.findByPk(req.params.id, {
@@ -46,7 +46,7 @@ class PermissionController {
     }
   }
 
-  // ── POST /api/permissions ───────────────────────────────────────────────────
+  // ── POST /api/permissions 
   static async create(req, res, next) {
     try {
       const { name, description } = req.body;
@@ -72,7 +72,7 @@ class PermissionController {
     }
   }
 
-  // ── PUT /api/permissions/:id ────────────────────────────────────────────────
+  // ── PUT /api/permissions/:id 
   static async update(req, res, next) {
     try {
       const permission = await Permission.findByPk(req.params.id);
@@ -103,7 +103,7 @@ class PermissionController {
     }
   }
 
-  // ── DELETE /api/permissions/:id ─────────────────────────────────────────────
+  // ── DELETE /api/permissions/:id 
   static async delete(req, res, next) {
     try {
       const permission = await Permission.findByPk(req.params.id);
@@ -127,7 +127,7 @@ class PermissionController {
     }
   }
 
-  // ── PUT /api/permissions/:id/roles ──────────────────────────────────────────
+  // ── PUT /api/permissions/:id/roles 
   // Full sync — replaces all roles on this permission with the given list
   static async assignRoles(req, res, next) {
     try {

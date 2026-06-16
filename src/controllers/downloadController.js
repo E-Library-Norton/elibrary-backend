@@ -1,24 +1,17 @@
 // controllers/downloadController.js
-const https                    = require('https');
-const http                     = require('http');
-const { Op }                   = require('sequelize');
+const https = require('https');
+const http = require('http');
+const { Op } = require('sequelize');
 const { Download, Book, User } = require('../models');
-const { GetObjectCommand }     = require('@aws-sdk/client-s3');
-const { getSignedUrl }         = require('@aws-sdk/s3-request-presigner');
-const r2                       = require('../config/r2');
-const { extractKeyFromUrl }    = require('../utils/cloudR2Upload');
-const ResponseFormatter        = require('../utils/responseFormatter');
-const { NotFoundError }        = require('../utils/errors');
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const r2 = require('../config/r2');
+const { extractKeyFromUrl } = require('../utils/cloudR2Upload');
+const ResponseFormatter = require('../utils/responseFormatter');
+const { NotFoundError } = require('../utils/errors');
 
 const BUCKET = process.env.R2_BUCKET;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Generate a time-limited R2 presigned GET URL (valid 1 hour).
- */
 async function signedUrl(storedUrl) {
   const key = extractKeyFromUrl(storedUrl);
   if (!key) return storedUrl; // fallback: return URL as-is
@@ -29,11 +22,6 @@ async function signedUrl(storedUrl) {
   );
 }
 
-/**
- * Fetch a URL server-side, following HTTP redirects.
- * FIX: Added explicit 30s timeout — prevents hanging indefinitely when
- * Cloudinary or any upstream host is slow / unreachable.
- */
 function fetchWithRedirect(url, maxRedirects = 5, timeoutMs = 30_000) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
@@ -78,14 +66,14 @@ async function proxyPdf(pdfUrl, res, disposition) {
     return;
   }
 
-  const filename    = disposition === 'inline' ? 'preview.pdf' : 'document.pdf';
+  const filename = disposition === 'inline' ? 'preview.pdf' : 'document.pdf';
   const encodedName = encodeURIComponent(filename);
 
-  res.setHeader('Content-Type',                 upstream.headers['content-type'] || 'application/pdf');
-  res.setHeader('Content-Disposition',          `${disposition}; filename="${filename}"; filename*=UTF-8''${encodedName}`);
-  res.setHeader('Cache-Control',                'private, max-age=3600');
-  res.setHeader('X-Content-Type-Options',       'nosniff');
-  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Content-Type', upstream.headers['content-type'] || 'application/pdf');
+  res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodedName}`);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
@@ -115,9 +103,8 @@ async function proxyPdf(pdfUrl, res, disposition) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+
 // Controller
-// ─────────────────────────────────────────────────────────────────────────────
 
 class DownloadController {
 
@@ -130,7 +117,7 @@ class DownloadController {
   static async getCover(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'coverUrl'],
       });
 
@@ -164,11 +151,11 @@ class DownloadController {
   static async getPdfUrl(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'title', 'pdfUrl'],
       });
 
-      if (!book)        throw new NotFoundError('Book not found');
+      if (!book) throw new NotFoundError('Book not found');
       if (!book.pdfUrl) return ResponseFormatter.error(res, 'No PDF available for this book', 404, 'NO_PDF');
 
       const key = extractKeyFromUrl(book.pdfUrl);
@@ -177,9 +164,9 @@ class DownloadController {
       const url = await getSignedUrl(
         r2,
         new GetObjectCommand({
-          Bucket:                     BUCKET,
-          Key:                        key,
-          ResponseContentType:        'application/pdf',
+          Bucket: BUCKET,
+          Key: key,
+          ResponseContentType: 'application/pdf',
           ResponseContentDisposition: 'inline',
         }),
         { expiresIn: 3600 },
@@ -197,11 +184,11 @@ class DownloadController {
   static async streamPdf(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'title', 'pdfUrl'],
       });
 
-      if (!book)        throw new NotFoundError('Book not found');
+      if (!book) throw new NotFoundError('Book not found');
       if (!book.pdfUrl) return ResponseFormatter.error(res, 'No PDF available for this book', 404, 'NO_PDF');
 
       await proxyPdf(book.pdfUrl, res, 'inline');
@@ -221,11 +208,11 @@ class DownloadController {
   static async recordDownload(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'title', 'pdfUrl', 'downloads'],
       });
 
-      if (!book)        throw new NotFoundError('Book not found');
+      if (!book) throw new NotFoundError('Book not found');
       if (!book.pdfUrl) return ResponseFormatter.error(res, 'No PDF available for this book', 404, 'NO_PDF');
 
       // FIX: Stream the PDF FIRST — DB operations must not block or break the download.
@@ -255,11 +242,11 @@ class DownloadController {
   static async getVideoUrl(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'title', 'videoUrl'],
       });
 
-      if (!book)         throw new NotFoundError('Book not found');
+      if (!book) throw new NotFoundError('Book not found');
       if (!book.videoUrl) return ResponseFormatter.error(res, 'No video available for this book', 404, 'NO_VIDEO');
 
       const key = extractKeyFromUrl(book.videoUrl);
@@ -271,8 +258,8 @@ class DownloadController {
       const url = await getSignedUrl(
         r2,
         new GetObjectCommand({
-          Bucket:                     BUCKET,
-          Key:                        key,
+          Bucket: BUCKET,
+          Key: key,
           ResponseContentDisposition: 'inline',
         }),
         { expiresIn: 3600 },
@@ -290,11 +277,11 @@ class DownloadController {
   static async getAudioUrl(req, res, next) {
     try {
       const book = await Book.findOne({
-        where:      { id: req.params.id, isDeleted: false, isActive: true },
+        where: { id: req.params.id, isDeleted: false, isActive: true },
         attributes: ['id', 'title', 'audioUrl'],
       });
 
-      if (!book)         throw new NotFoundError('Book not found');
+      if (!book) throw new NotFoundError('Book not found');
       if (!book.audioUrl) return ResponseFormatter.error(res, 'No audio available for this book', 404, 'NO_AUDIO');
 
       const key = extractKeyFromUrl(book.audioUrl);
@@ -306,8 +293,8 @@ class DownloadController {
       const url = await getSignedUrl(
         r2,
         new GetObjectCommand({
-          Bucket:                     BUCKET,
-          Key:                        key,
+          Bucket: BUCKET,
+          Key: key,
           ResponseContentDisposition: 'inline',
         }),
         { expiresIn: 3600 },
@@ -327,7 +314,7 @@ class DownloadController {
       if (from || to) {
         where.downloadedAt = {};
         if (from) where.downloadedAt[Op.gte] = new Date(from);
-        if (to)   where.downloadedAt[Op.lte] = new Date(to);
+        if (to) where.downloadedAt[Op.lte] = new Date(to);
       }
 
       const offset = (Number(page) - 1) * Number(limit);
@@ -337,8 +324,8 @@ class DownloadController {
           { model: User, as: 'User', attributes: ['id', 'username', 'email', 'studentId'] },
           { model: Book, as: 'Book', attributes: ['id', 'title', 'isbn', 'downloads'] },
         ],
-        order:  [['downloadedAt', 'DESC']],
-        limit:  Number(limit),
+        order: [['downloadedAt', 'DESC']],
+        limit: Number(limit),
         offset,
       });
 
@@ -357,10 +344,10 @@ class DownloadController {
       const offset = (Number(page) - 1) * Number(limit);
 
       const { count, rows } = await Download.findAndCountAll({
-        where:   { userId: req.user.id },
+        where: { userId: req.user.id },
         include: [{ model: Book, as: 'Book', attributes: ['id', 'title', 'isbn', 'coverUrl', 'downloads'] }],
-        order:   [['downloadedAt', 'DESC']],
-        limit:   Number(limit),
+        order: [['downloadedAt', 'DESC']],
+        limit: Number(limit),
         offset,
       });
 
@@ -373,9 +360,9 @@ class DownloadController {
 
   // GET /api/downloads/stats — top books + total
   static async getStats(req, res, next) {
-   try {
+    try {
       const { fn, col } = require('sequelize');
-      const countExpr   = fn('COUNT', col('Download.id'));
+      const countExpr = fn('COUNT', col('Download.id'));
 
       const [topBooks, totalDownloads] = await Promise.all([
         Download.findAll({
@@ -384,9 +371,9 @@ class DownloadController {
             [countExpr, 'downloadCount'],
           ],
           include: [{ model: Book, as: 'Book', attributes: ['id', 'title', 'coverUrl', 'downloads'] }],
-          group:   [col('Download.book_id'), col('Book.id')],
-          order:   [[countExpr, 'DESC']],
-          limit:   10,
+          group: [col('Download.book_id'), col('Book.id')],
+          order: [[countExpr, 'DESC']],
+          limit: 10,
         }),
         Download.count(),
       ]);

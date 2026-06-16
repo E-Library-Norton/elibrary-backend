@@ -7,12 +7,12 @@ const {
 const ResponseFormatter = require('../utils/responseFormatter');
 const { ValidationError, NotFoundError } = require('../utils/errors');
 
-// ── Gemini API ────────────────────────────────────────────────────────────────
+// ── Gemini API 
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
-// ── In-memory cache (TTL = 5 minutes) ────────────────────────────────────────
-const cache     = new Map();
+// ── In-memory cache (TTL = 5 minutes) 
+const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 
 function getCached(key) {
@@ -29,11 +29,11 @@ function setCache(key, data) {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
-// ── Shared BOOK_INCLUDE ───────────────────────────────────────────────────────
+// ── Shared BOOK_INCLUDE ─
 const BOOK_INCLUDE = [
-  { model: Category,     as: 'Category',    attributes: ['id', 'name', 'nameKh'] },
-  { model: Publisher,    as: 'Publisher',   attributes: ['id', 'name', 'nameKh'] },
-  { model: Department,   as: 'Department',  attributes: ['id', 'name', 'code'] },
+  { model: Category, as: 'Category', attributes: ['id', 'name', 'nameKh'] },
+  { model: Publisher, as: 'Publisher', attributes: ['id', 'name', 'nameKh'] },
+  { model: Department, as: 'Department', attributes: ['id', 'name', 'code'] },
   { model: MaterialType, as: 'MaterialType', attributes: ['id', 'name', 'nameKh'] },
   {
     model: Author, as: 'Authors',
@@ -42,7 +42,7 @@ const BOOK_INCLUDE = [
   },
 ];
 
-// ── Call Gemini — returns parsed JSON array ───────────────────────────────────
+// ── Call Gemini — returns parsed JSON array 
 async function callGemini(prompt, maxTokens = 1500) {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured in environment');
@@ -50,15 +50,15 @@ async function callGemini(prompt, maxTokens = 1500) {
   let response;
   try {
     response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature:     0.7,
+          temperature: 0.7,
           maxOutputTokens: maxTokens,
-          topK:            40,
-          topP:            0.95,
+          topK: 40,
+          topP: 0.95,
         },
       }),
     });
@@ -74,7 +74,7 @@ async function callGemini(prompt, maxTokens = 1500) {
     throw new Error(`Gemini API error (${response.status}): ${errText}`);
   }
 
-  const data    = await response.json();
+  const data = await response.json();
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
   const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
@@ -90,7 +90,7 @@ async function callGemini(prompt, maxTokens = 1500) {
   }
 }
 
-// ── Call Gemini — returns plain text (for chat) ───────────────────────────────
+// ── Call Gemini — returns plain text (for chat) 
 async function callGeminiText(prompt, maxTokens = 800) {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_AI_API_KEY is not configured in environment');
@@ -98,7 +98,7 @@ async function callGeminiText(prompt, maxTokens = 800) {
   let response;
   try {
     response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -121,7 +121,7 @@ async function callGeminiText(prompt, maxTokens = 800) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-// ── Match AI suggestions → real DB books ─────────────────────────────────────
+// ── Match AI suggestions → real DB books ──
 async function matchBooksFromDB(aiSuggestions) {
   if (!Array.isArray(aiSuggestions) || !aiSuggestions.length) return [];
 
@@ -132,9 +132,9 @@ async function matchBooksFromDB(aiSuggestions) {
   if (!titleConditions.length) return [];
 
   const dbBooks = await Book.findAll({
-    where:   { isDeleted: false, isActive: true, [Op.or]: titleConditions },
+    where: { isDeleted: false, isActive: true, [Op.or]: titleConditions },
     include: BOOK_INCLUDE,
-    limit:   10,
+    limit: 10,
   });
 
   return dbBooks.map((book) => {
@@ -145,10 +145,9 @@ async function matchBooksFromDB(aiSuggestions) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 class AIRecommendationController {
 
-  // ── GET /api/ai/recommendations?category=Programming ─────────────────────
+  // ── GET /api/ai/recommendations?category=Programming 
   static async byCategory(req, res, next) {
     try {
       const { category } = req.query;
@@ -157,31 +156,31 @@ class AIRecommendationController {
       }
 
       const cacheKey = `cat:${String(category).toLowerCase()}`;
-      const cached   = getCached(cacheKey);
+      const cached = getCached(cacheKey);
       if (cached) return ResponseFormatter.success(res, { ...cached, cached: true });
 
       // Fetch DB books in this category to ground the AI
       const dbBooks = await Book.findAll({
-        where:   { isDeleted: false, isActive: true },
+        where: { isDeleted: false, isActive: true },
         include: [
           {
-            model:      Category,
-            as:         'Category',
-            where:      { name: { [Op.iLike]: `%${category}%` } },
+            model: Category,
+            as: 'Category',
+            where: { name: { [Op.iLike]: `%${category}%` } },
             attributes: ['name'],
           },
           {
             model: Author, as: 'Authors',
             attributes: ['name'],
-            through:    { attributes: [] },
+            through: { attributes: [] },
           },
         ],
         attributes: ['id', 'title', 'publicationYear'],
-        limit:      50,
+        limit: 50,
       });
 
       const bookList = dbBooks.map((b) => ({
-        title:  b.title,
+        title: b.title,
         author: b.Authors?.[0]?.name ?? 'Unknown',
       }));
 
@@ -201,20 +200,20 @@ Return ONLY a valid JSON array, no markdown, no extra text:
 [{"title":"...","author":"...","reason":"one sentence why this book is valuable"}]`;
 
       const aiSuggestions = await callGemini(prompt);
-      const matched       = bookList.length ? await matchBooksFromDB(aiSuggestions) : [];
+      const matched = bookList.length ? await matchBooksFromDB(aiSuggestions) : [];
 
       const result = {
-        source:          matched.length ? 'library' : 'ai-general',
+        source: matched.length ? 'library' : 'ai-general',
         category,
         recommendations: matched.length ? matched : aiSuggestions,
-        total:           matched.length || aiSuggestions.length,
+        total: matched.length || aiSuggestions.length,
       };
       setCache(cacheKey, result);
       return ResponseFormatter.success(res, result);
     } catch (err) { next(err); }
   }
 
-  // ── GET /api/ai/recommendations?bookTitle=Clean+Code ─────────────────────
+  // ── GET /api/ai/recommendations?bookTitle=Clean+Code 
   static async byBook(req, res, next) {
     try {
       const { bookTitle } = req.query;
@@ -223,15 +222,15 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       }
 
       const cacheKey = `book:${String(bookTitle).toLowerCase()}`;
-      const cached   = getCached(cacheKey);
+      const cached = getCached(cacheKey);
       if (cached) return ResponseFormatter.success(res, { ...cached, cached: true });
 
       // Find source book in DB
       const sourceBook = await Book.findOne({
-        where:   { title: { [Op.iLike]: `%${bookTitle}%` }, isDeleted: false },
+        where: { title: { [Op.iLike]: `%${bookTitle}%` }, isDeleted: false },
         include: [
           { model: Category, as: 'Category', attributes: ['id', 'name'] },
-          { model: Author,   as: 'Authors',  attributes: ['name'], through: { attributes: [] } },
+          { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
         ],
       });
 
@@ -240,21 +239,21 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       if (sourceBook?.categoryId) {
         const siblings = await Book.findAll({
           where: {
-            isDeleted:  false,
-            isActive:   true,
+            isDeleted: false,
+            isActive: true,
             categoryId: sourceBook.categoryId,
-            id:         { [Op.ne]: sourceBook.id },
+            id: { [Op.ne]: sourceBook.id },
           },
           include: [{
             model: Author, as: 'Authors',
             attributes: ['name'],
-            through:    { attributes: [] },
+            through: { attributes: [] },
           }],
           attributes: ['title'],
-          limit:      40,
+          limit: 40,
         });
         siblingBooks = siblings.map((b) => ({
-          title:  b.title,
+          title: b.title,
           author: b.Authors?.[0]?.name ?? 'Unknown',
         }));
       }
@@ -277,21 +276,21 @@ Return ONLY a valid JSON array, no markdown, no extra text:
 [{"title":"...","author":"...","reason":"one sentence why it is similar"}]`;
 
       const aiSuggestions = await callGemini(prompt);
-      const matched       = siblingBooks.length ? await matchBooksFromDB(aiSuggestions) : [];
+      const matched = siblingBooks.length ? await matchBooksFromDB(aiSuggestions) : [];
 
       const result = {
-        source:          matched.length ? 'library' : 'ai-general',
-        basedOn:         bookTitle,
-        bookFound:       !!sourceBook,
+        source: matched.length ? 'library' : 'ai-general',
+        basedOn: bookTitle,
+        bookFound: !!sourceBook,
         recommendations: matched.length ? matched : aiSuggestions,
-        total:           matched.length || aiSuggestions.length,
+        total: matched.length || aiSuggestions.length,
       };
       setCache(cacheKey, result);
       return ResponseFormatter.success(res, result);
     } catch (err) { next(err); }
   }
 
-  // ── GET /api/ai/recommendations?userId=current  (requires auth) ───────────
+  // ── GET /api/ai/recommendations?userId=current  (requires auth) 
   static async byUserHistory(req, res, next) {
     try {
       const userId = req.user?.id;
@@ -299,14 +298,14 @@ Return ONLY a valid JSON array, no markdown, no extra text:
 
       // BUG FIX: use Sequelize field alias 'userId' not raw 'user_id'
       const downloads = await Download.findAll({
-        where:   { userId },                          // ✅ mapped to user_id column
+        where: { userId },
         include: [{
-          model:      Book,
-          as:         'Book',
+          model: Book,
+          as: 'Book',
           attributes: ['title'],
           include: [
             { model: Category, as: 'Category', attributes: ['name'] },
-            { model: Author,   as: 'Authors',  attributes: ['name'], through: { attributes: [] } },
+            { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
           ],
         }],
         order: [['downloadedAt', 'DESC']],
@@ -316,22 +315,22 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       // No history → return popular books
       if (!downloads.length) {
         const popular = await Book.findAll({
-          where:   { isDeleted: false, isActive: true },
+          where: { isDeleted: false, isActive: true },
           include: BOOK_INCLUDE,
-          order:   [['views', 'DESC']],
-          limit:   6,
+          order: [['views', 'DESC']],
+          limit: 6,
         });
         return ResponseFormatter.success(res, {
-          source:          'popular',
-          message:         'No reading history found — showing most popular books',
+          source: 'popular',
+          message: 'No reading history found — showing most popular books',
           recommendations: popular,
-          total:           popular.length,
+          total: popular.length,
         });
       }
 
       const historyList = downloads.map((d) => ({
-        title:    d.Book?.title ?? 'Unknown',
-        author:   d.Book?.Authors?.[0]?.name ?? 'Unknown',
+        title: d.Book?.title ?? 'Unknown',
+        author: d.Book?.Authors?.[0]?.name ?? 'Unknown',
         category: d.Book?.Category?.name ?? 'General',
       }));
 
@@ -353,35 +352,35 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       }));
 
       const candidateBooks = await Book.findAll({
-        where:   { isDeleted: false, isActive: true },
+        where: { isDeleted: false, isActive: true },
         include: [
           {
-            model:      Category,
-            as:         'Category',
-            where:      categoryConditions.length ? { [Op.or]: categoryConditions } : undefined,
+            model: Category,
+            as: 'Category',
+            where: categoryConditions.length ? { [Op.or]: categoryConditions } : undefined,
             attributes: ['name'],
           },
           { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
         ],
         attributes: ['id', 'title'],
-        limit:      60,
+        limit: 60,
       }).catch(() =>
         // Fallback: all active books if category filter fails
         Book.findAll({
-          where:   { isDeleted: false, isActive: true },
+          where: { isDeleted: false, isActive: true },
           include: [
             { model: Category, as: 'Category', attributes: ['name'] },
-            { model: Author,   as: 'Authors',  attributes: ['name'], through: { attributes: [] } },
+            { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
           ],
           attributes: ['id', 'title'],
-          limit:      60,
+          limit: 60,
         })
       );
 
       const candidates = candidateBooks
         .filter((b) => !alreadyRead.has(b.title.toLowerCase()))
         .map((b) => ({
-          title:  b.title,
+          title: b.title,
           author: b.Authors?.[0]?.name ?? 'Unknown',
         }));
 
@@ -390,30 +389,30 @@ Here is a student's reading history:
 ${historyList.map((b, i) => `${i + 1}. "${b.title}" by ${b.author} [${b.category}]`).join('\n')}
 
 ${candidates.length
-  ? `Available books in the library (not yet read by the student):
+          ? `Available books in the library (not yet read by the student):
 ${candidates.map((b, i) => `${i + 1}. "${b.title}" by ${b.author}`).join('\n')}
 
 Recommend the 6 best books from the available list based on the student's reading taste.
 Only recommend from the available books list.`
-  : `Recommend 6 books based on the student's reading taste.`}
+          : `Recommend 6 books based on the student's reading taste.`}
 
 Return ONLY a valid JSON array, no markdown, no extra text:
 [{"title":"...","author":"...","reason":"one sentence why the student would enjoy this"}]`;
 
       const aiSuggestions = await callGemini(prompt);
-      const matched       = await matchBooksFromDB(aiSuggestions);
+      const matched = await matchBooksFromDB(aiSuggestions);
 
       return ResponseFormatter.success(res, {
-        source:          matched.length ? 'library' : 'ai-general',
-        basedOn:         'reading-history',
-        historyCount:    downloads.length,
+        source: matched.length ? 'library' : 'ai-general',
+        basedOn: 'reading-history',
+        historyCount: downloads.length,
         recommendations: matched.length ? matched : aiSuggestions,
-        total:           matched.length || aiSuggestions.length,
+        total: matched.length || aiSuggestions.length,
       });
     } catch (err) { next(err); }
   }
 
-  // ── POST /api/ai/recommendations/personalized ─────────────────────────────
+  // ── POST /api/ai/recommendations/personalized 
   static async personalized(req, res, next) {
     try {
       const { readingHistory = [], categoryIds = [], bookId } = req.body;
@@ -428,8 +427,8 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       let bookContext = '';
       if (bookId) {
         const book = await Book.findOne({
-          where:      { id: bookId, isDeleted: false },
-          include:    [{ model: Category, as: 'Category', attributes: ['name'] }],
+          where: { id: bookId, isDeleted: false },
+          include: [{ model: Category, as: 'Category', attributes: ['name'] }],
           attributes: ['title'],
         });
         if (book) bookContext = `Reference book: "${book.title}" (${book.Category?.name ?? ''})`;
@@ -438,7 +437,7 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       // Fetch candidates from requested categories (or all books)
       const categoryWhere = categoryIds.length ? { id: { [Op.in]: categoryIds } } : undefined;
       const availableBooks = await Book.findAll({
-        where:   { isDeleted: false, isActive: true },
+        where: { isDeleted: false, isActive: true },
         include: [
           categoryWhere
             ? { model: Category, as: 'Category', where: categoryWhere, attributes: ['name'] }
@@ -446,7 +445,7 @@ Return ONLY a valid JSON array, no markdown, no extra text:
           { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
         ],
         attributes: ['id', 'title'],
-        limit:      60,
+        limit: 60,
       });
 
       const alreadyRead = new Set(
@@ -455,8 +454,8 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       const candidates = availableBooks
         .filter((b) => !alreadyRead.has(b.title.toLowerCase()))
         .map((b) => ({
-          title:    b.title,
-          author:   b.Authors?.[0]?.name ?? 'Unknown',
+          title: b.title,
+          author: b.Authors?.[0]?.name ?? 'Unknown',
           category: b.Category?.name ?? 'General',
         }));
 
@@ -469,32 +468,32 @@ ${historyText}
 ${bookContext}
 
 ${candidates.length
-  ? `Available books in the library:
+          ? `Available books in the library:
 ${candidates.map((b, i) => `${i + 1}. "${b.title}" by ${b.author} [${b.category}]`).join('\n')}
 
 Recommend 6 books from the list above that best match the student's taste.
 Only recommend from the available books list.`
-  : `Recommend 6 books that match the student's taste.`}
+          : `Recommend 6 books that match the student's taste.`}
 
 Return ONLY a valid JSON array, no markdown, no extra text:
 [{"title":"...","author":"...","category":"...","reason":"one sentence why the student would love it"}]`;
 
       const aiSuggestions = await callGemini(prompt);
-      const matched       = candidates.length ? await matchBooksFromDB(aiSuggestions) : [];
+      const matched = candidates.length ? await matchBooksFromDB(aiSuggestions) : [];
 
       return ResponseFormatter.success(res, {
-        source:          matched.length ? 'library' : 'ai-general',
+        source: matched.length ? 'library' : 'ai-general',
         recommendations: matched.length ? matched : aiSuggestions,
-        total:           matched.length || aiSuggestions.length,
+        total: matched.length || aiSuggestions.length,
       });
     } catch (err) { next(err); }
   }
 
-  // ── GET /api/ai/recommendations/trending ─────────────────────────────────
+  // ── GET /api/ai/recommendations/trending ──
   static async trending(req, res, next) {
     try {
       const cacheKey = 'trending';
-      const cached   = getCached(cacheKey);
+      const cached = getCached(cacheKey);
       if (cached) return ResponseFormatter.success(res, { ...cached, cached: true });
 
       const limit = Math.min(parseInt(req.query.limit) || 6, 20);
@@ -505,19 +504,19 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       let topDownloaded = [];
       try {
         topDownloaded = await Download.findAll({
-          where:      { downloadedAt: { [Op.gte]: thirtyDaysAgo } },
+          where: { downloadedAt: { [Op.gte]: thirtyDaysAgo } },
           attributes: [
             'bookId',
             [fn('COUNT', col('Download.id')), 'downloadCount'],
           ],
           include: [{
-            model:      Book,
-            as:         'Book',
+            model: Book,
+            as: 'Book',
             attributes: ['id', 'title'],
-            where:      { isDeleted: false, isActive: true },
+            where: { isDeleted: false, isActive: true },
           }],
-          group:  ['Download.book_id', 'Book.id'],   // ✅ real column names
-          order:  [[literal('downloadCount'), 'DESC']], // ✅ no double-quotes needed
+          group: ['Download.book_id', 'Book.id'],   // ✅ real column names
+          order: [[literal('downloadCount'), 'DESC']], // ✅ no double-quotes needed
           limit,
         });
       } catch (groupErr) {
@@ -527,15 +526,15 @@ Return ONLY a valid JSON array, no markdown, no extra text:
 
       // Most viewed (all time fallback + supplement)
       const topViewed = await Book.findAll({
-        where:   { isDeleted: false, isActive: true },
+        where: { isDeleted: false, isActive: true },
         include: BOOK_INCLUDE,
-        order:   [['views', 'DESC']],
+        order: [['views', 'DESC']],
         limit,
       });
 
       // Merge unique books: downloads first, then views
       const seenIds = new Set();
-      const merged  = [];
+      const merged = [];
       for (const d of topDownloaded) {
         const id = d.Book?.id;
         if (id && !seenIds.has(String(id))) {
@@ -564,12 +563,12 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       }
 
       // Fetch full enriched book records
-      const bookIds   = trendingCandidates.map((b) => b.id).filter(Boolean);
+      const bookIds = trendingCandidates.map((b) => b.id).filter(Boolean);
       const fullBooks = bookIds.length
         ? await Book.findAll({
-            where:   { id: { [Op.in]: bookIds }, isDeleted: false, isActive: true },
-            include: BOOK_INCLUDE,
-          })
+          where: { id: { [Op.in]: bookIds }, isDeleted: false, isActive: true },
+          include: BOOK_INCLUDE,
+        })
         : topViewed.slice(0, limit);
 
       const recommendations = fullBooks.map((book) => {
@@ -580,17 +579,17 @@ Return ONLY a valid JSON array, no markdown, no extra text:
       });
 
       const result = {
-        source:          'trending',
-        period:          'last-30-days',
+        source: 'trending',
+        period: 'last-30-days',
         recommendations,
-        total:           recommendations.length,
+        total: recommendations.length,
       };
       setCache(cacheKey, result);
       return ResponseFormatter.success(res, result);
     } catch (err) { next(err); }
   }
 
-  // ── POST /api/ai/recommendations/chat ────────────────────────────────────
+  // ── POST /api/ai/recommendations/chat ─
   static async chat(req, res, next) {
     try {
       const { message, context = {} } = req.body;
@@ -613,7 +612,7 @@ Return ONLY a valid JSON array, no markdown, no extra text:
 
       const prompt = `You are a helpful, friendly librarian AI assistant for Norton University's E-Library.
 The library has ${totalBooks} books across categories including: ${categoryList}.
-${currentBook     ? `The student is currently viewing: "${currentBook}"` : ''}
+${currentBook ? `The student is currently viewing: "${currentBook}"` : ''}
 ${currentCategory ? `The student is browsing the "${currentCategory}" category.` : ''}
 
 Only answer questions related to books, reading, library resources, academic topics, and study advice.
@@ -626,12 +625,12 @@ Student question: ${String(message).trim()}`;
 
       return ResponseFormatter.success(res, {
         message: reply.trim(),
-        role:    'assistant',
+        role: 'assistant',
       });
     } catch (err) { next(err); }
   }
 
-  // ── GET /api/ai/recommendations/similar/:bookId ───────────────────────────
+  // ── GET /api/ai/recommendations/similar/:bookId 
   static async similarById(req, res, next) {
     try {
       const { bookId } = req.params;
@@ -641,10 +640,10 @@ Student question: ${String(message).trim()}`;
       }
 
       const sourceBook = await Book.findOne({
-        where:   { id: bookId, isDeleted: false, isActive: true },
+        where: { id: bookId, isDeleted: false, isActive: true },
         include: [
           { model: Category, as: 'Category', attributes: ['id', 'name'] },
-          { model: Author,   as: 'Authors',  attributes: ['name'], through: { attributes: [] } },
+          { model: Author, as: 'Authors', attributes: ['name'], through: { attributes: [] } },
         ],
       });
       if (!sourceBook) throw new NotFoundError(`Book with id=${bookId} not found`);

@@ -8,13 +8,13 @@ class ActivityController {
      */
     static async getActivities(req, res, next) {
         try {
-            const pageNum  = Math.max(1, parseInt(req.query.page)  || 1);
+            const pageNum = Math.max(1, parseInt(req.query.page) || 1);
             const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-            const offset   = (pageNum - 1) * limitNum;
-            const type     = req.query.type   || 'all';
-            const search   = req.query.search || '';
-            const userId   = req.query.userId || null;
-            const days     = req.query.days   || null;
+            const offset = (pageNum - 1) * limitNum;
+            const type = req.query.type || 'all';
+            const search = req.query.search || '';
+            const userId = req.query.userId || null;
+            const days = req.query.days || null;
 
             // Build where clause
             const where = {};
@@ -44,11 +44,11 @@ class ActivityController {
 
             if (search) {
                 where[Op.or] = [
-                    { action:     { [Op.iLike]: `%${search}%` } },
+                    { action: { [Op.iLike]: `%${search}%` } },
                     { targetName: { [Op.iLike]: `%${search}%` } },
                     { '$User.firstName$': { [Op.iLike]: `%${search}%` } },
-                    { '$User.lastName$':  { [Op.iLike]: `%${search}%` } },
-                    { '$User.username$':  { [Op.iLike]: `%${search}%` } },
+                    { '$User.lastName$': { [Op.iLike]: `%${search}%` } },
+                    { '$User.username$': { [Op.iLike]: `%${search}%` } },
                 ];
             }
 
@@ -67,7 +67,7 @@ class ActivityController {
                     where,
                     include: [userInclude],
                     order: [['createdAt', 'DESC']],
-                    limit:  limitNum,
+                    limit: limitNum,
                     offset,
                     subQuery: false,
                 }),
@@ -75,7 +75,7 @@ class ActivityController {
 
             const activities = rows.map(act => {
                 const fullName = act.User ?
-                    (`${act.User.firstName } ${act.User.lastName }`).trim() || act.User.username :
+                    (`${act.User.firstName} ${act.User.lastName}`).trim() || act.User.username :
                     "System";
 
                 return {
@@ -100,7 +100,7 @@ class ActivityController {
                 activities,
                 pagination: {
                     total: count,
-                    page:  pageNum,
+                    page: pageNum,
                     limit: limitNum,
                     totalPages: Math.ceil(count / limitNum),
                 },

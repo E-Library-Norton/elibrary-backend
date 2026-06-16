@@ -1,15 +1,10 @@
 // utils/pushNotification.js
 // Thin wrapper around web-push.  Set VAPID keys via env vars.
-//
-// Required env vars:
-//   VAPID_PUBLIC_KEY   – from `npx web-push generate-vapid-keys`
-//   VAPID_PRIVATE_KEY  – from `npx web-push generate-vapid-keys`
-//   VAPID_EMAIL        – e.g. "mailto:admin@elibrary.edu.kh"
 
 const webpush = require('web-push');
 const { PushSubscription } = require('../models');
 
-// ── VAPID setup ───────────────────────────────────────────────────────────────
+// ── VAPID setup 
 const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY  ;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ;
 const VAPID_EMAIL       = process.env.VAPID_EMAIL       || 'mailto:admin@elibrary.edu.kh';
@@ -20,7 +15,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   console.warn('[Push] VAPID keys not set — push notifications disabled');
 }
 
-// ── Send to a single subscription ────────────────────────────────────────────
+// ── Send to a single subscription 
 async function sendPushNotification(subscriptionRecord, payload) {
   if (!VAPID_PUBLIC_KEY) return; // silently no-op if not configured
 
@@ -41,7 +36,7 @@ async function sendPushNotification(subscriptionRecord, payload) {
   }
 }
 
-// ── Broadcast to ALL active subscriptions ────────────────────────────────────
+// ── Broadcast to ALL active subscriptions 
 async function broadcastNotification(title, body, url = '/') {
   if (!VAPID_PUBLIC_KEY) return;
 

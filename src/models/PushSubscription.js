@@ -6,31 +6,31 @@ const PushSubscription = sequelize.define(
   'PushSubscription',
   {
     id: {
-      type:          DataTypes.BIGINT,
-      primaryKey:    true,
+      type: DataTypes.BIGINT,
+      primaryKey: true,
       autoIncrement: true,
     },
     userId: {
-      type:      DataTypes.BIGINT,
+      type: DataTypes.BIGINT,
       allowNull: true,        // null = anonymous / not logged-in user
-      field:     'user_id',
+      field: 'user_id',
     },
     endpoint: {
-      type:      DataTypes.TEXT,
+      type: DataTypes.TEXT,
       allowNull: false,
-      unique:    true,
+      unique: true,
     },
     keys: {
-      type:      DataTypes.JSON,
+      type: DataTypes.JSON,
       allowNull: false,
-      comment:   '{ p256dh, auth }',
+      comment: '{ p256dh, auth }',
     },
   },
   {
-    tableName:  'push_subscriptions',
+    tableName: 'push_subscriptions',
     timestamps: true,
-    createdAt:  'created_at',
-    updatedAt:  'updated_at',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   }
 );
 

@@ -1,51 +1,51 @@
 const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const r2   = require('../config/r2');
+const r2 = require('../config/r2');
 const path = require('path');
 
-const BUCKET     = process.env.R2_BUCKET;
+const BUCKET = process.env.R2_BUCKET;
 // R2_PUBLIC_URL  = base URL for publicly accessible files, e.g. https://pub-xxx.r2.dev
 // Leave empty to fall back to path-style endpoint URL.
 const PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
 
-// ─── MIME / folder / resource-type maps (unchanged) ─────────────────────────
+// ─── MIME / folder / resource-type maps (unchanged) 
 const MIME_TO_EXT = {
   'application/pdf': '.pdf',
-  'image/jpeg':      '.jpg',
-  'image/png':       '.png',
-  'image/gif':       '.gif',
-  'image/webp':      '.webp',
-  'image/svg+xml':   '.svg',
-  'video/mp4':       '.mp4',
-  'video/mpeg':      '.mpeg',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'image/svg+xml': '.svg',
+  'video/mp4': '.mp4',
+  'video/mpeg': '.mpeg',
   'video/quicktime': '.mov',
   'video/x-msvideo': '.avi',
-  'video/webm':      '.webm',
-  'audio/mpeg':      '.mp3',
-  'audio/wav':       '.wav',
-  'audio/ogg':       '.ogg',
-  'audio/aac':       '.aac',
-  'audio/webm':      '.webm',
+  'video/webm': '.webm',
+  'audio/mpeg': '.mp3',
+  'audio/wav': '.wav',
+  'audio/ogg': '.ogg',
+  'audio/aac': '.aac',
+  'audio/webm': '.webm',
 };
 
 const GENERIC = new Set(['file', 'pdf', 'cover', 'avatar', 'blob', 'upload', 'image', 'video', 'audio']);
 
 const FOLDER = {
-  cover:  'books/covers',
-  pdf:    'books/pdfs',
+  cover: 'books/covers',
+  pdf: 'books/pdfs',
   avatar: 'avatars',
-  file:   'uploads',
-  video:  'media/videos',
-  audio:  'media/audios',
+  file: 'uploads',
+  video: 'media/videos',
+  audio: 'media/audios',
 };
 
 const RESOURCE_TYPE = {
-  cover:  'image',
-  pdf:    'raw',
+  cover: 'image',
+  pdf: 'raw',
   avatar: 'image',
-  file:   'auto',
-  video:  'video',
-  audio:  'raw',
+  file: 'auto',
+  video: 'video',
+  audio: 'raw',
 };
 
 function getResourceType(mimetype = '', fieldName = '') {
@@ -56,7 +56,7 @@ function getResourceType(mimetype = '', fieldName = '') {
   return 'raw';
 }
 
-// ─── Key / URL helpers ───────────────────────────────────────────────────────
+// ─── Key / URL helpers ─────
 
 /**
  * Build a clean R2 object key (replaces buildPublicId).
@@ -64,8 +64,8 @@ function getResourceType(mimetype = '', fieldName = '') {
  */
 function buildKey(originalName, mimetype, folder) {
   const detectedExt = path.extname(originalName).toLowerCase(); // ".pdf" | ".jpg" | ""
-  const ext         = detectedExt || MIME_TO_EXT[mimetype] ;
-  const nameNoExt   = path.basename(originalName, detectedExt);
+  const ext = detectedExt || MIME_TO_EXT[mimetype];
+  const nameNoExt = path.basename(originalName, detectedExt);
 
   const base = GENERIC.has(nameNoExt.toLowerCase())
     ? `upload_${Date.now().toString(36)}`
@@ -106,12 +106,12 @@ function extractKeyFromUrl(url) {
   }
   // Match against path-style endpoint: https://<account>.r2.cloudflarestorage.com/<bucket>/<key>
   const endpoint = (process.env.R2_ENDPOINT || '').replace(/\/$/, '');
-  const prefix   = `${endpoint}/${BUCKET}/`;
+  const prefix = `${endpoint}/${BUCKET}/`;
   if (url.startsWith(prefix)) return url.slice(prefix.length);
   return null;
 }
 
-// ─── Core upload / delete / presign ─────────────────────────────────────────
+// ─── Core upload / delete / presign 
 
 /**
  * Upload a file buffer to R2.
@@ -119,21 +119,21 @@ function extractKeyFromUrl(url) {
  *   { secure_url, public_id, format, resource_type }
  */
 async function uploadToR2(file, fieldNameOrFolder, resourceTypeOverride) {
-  const folder       = FOLDER[fieldNameOrFolder] || fieldNameOrFolder || 'uploads';
+  const folder = FOLDER[fieldNameOrFolder] || fieldNameOrFolder || 'uploads';
   const resourceType = resourceTypeOverride || getResourceType(file.mimetype, fieldNameOrFolder);
-  const key          = buildKey(file.originalname, file.mimetype, folder);
+  const key = buildKey(file.originalname, file.mimetype, folder);
 
   await r2.send(new PutObjectCommand({
-    Bucket:      BUCKET,
-    Key:         key,
-    Body:        file.buffer,
+    Bucket: BUCKET,
+    Key: key,
+    Body: file.buffer,
     ContentType: file.mimetype,
   }));
 
   return {
-    secure_url:    getPublicUrl(key),
-    public_id:     key,                                          // R2 key ≈ Cloudinary public_id
-    format:        path.extname(key).replace('.', '').toLowerCase(),
+    secure_url: getPublicUrl(key),
+    public_id: key,                                          // R2 key ≈ Cloudinary public_id
+    format: path.extname(key).replace('.', '').toLowerCase(),
     resource_type: resourceType,
   };
 }
@@ -168,8 +168,8 @@ async function buildDownloadUrl(storedUrl, filename) {
   return getSignedUrl(
     r2,
     new GetObjectCommand({
-      Bucket:                     BUCKET,
-      Key:                        key,
+      Bucket: BUCKET,
+      Key: key,
       ResponseContentDisposition: `attachment; filename="${safeName}.pdf"`,
     }),
     { expiresIn: 3600 },

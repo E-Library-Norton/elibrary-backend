@@ -71,10 +71,10 @@ class EditorController {
         if (existing) throw new ConflictError(`Editor "${name.trim()}" already exists`);
       }
       await editor.update({
-        ...(name      !== undefined && { name: name.trim() }),
-        ...(nameKh    !== undefined && { nameKh }),
+        ...(name !== undefined && { name: name.trim() }),
+        ...(nameKh !== undefined && { nameKh }),
         ...(biography !== undefined && { biography }),
-        ...(website   !== undefined && { website }),
+        ...(website !== undefined && { website }),
       });
 
       await logActivity({

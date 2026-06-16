@@ -16,9 +16,9 @@ const Department = require('./Department');
 const Download = require('./Download');
 const Setting = require('./Setting');
 const Activity = require('./Activity');
-const Review          = require('./Review');
+const Review = require('./Review');
 const PushSubscription = require('./PushSubscription');
-const Feedback         = require('./Feedback');
+const Feedback = require('./Feedback');
 
 // ── Junction table models (all timestamps: false — these tables have NO created_at) ──
 const UsersRoles = sequelize.define('UsersRoles', {
@@ -47,7 +47,7 @@ const BookAuthor = sequelize.define('BookAuthor', {
 }, { tableName: 'books_authors', timestamps: false });
 
 const BookEditor = sequelize.define('BookEditor', {
-  book_id:   { type: DataTypes.BIGINT, primaryKey: true },
+  book_id: { type: DataTypes.BIGINT, primaryKey: true },
   editor_id: { type: DataTypes.BIGINT, primaryKey: true },
 }, { tableName: 'books_editors', timestamps: false });
 

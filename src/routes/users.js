@@ -24,17 +24,17 @@ router.get("/:id/avatar", UserController.getAvatarById);
 router.use(authenticate);
 
 // Admins can manage users
-router.get("/",      requirePermission("users.view"),   UserController.getAll);
-router.get("/:id",   userRules.id,     requirePermission("users.view"),   UserController.getById);
-router.post("/",     userRules.create, requirePermission("users.create"), UserController.create);
-router.patch("/:id",   userRules.update, requirePermission("users.update"), UserController.update);
-router.delete("/:id",userRules.id,     requirePermission("users.delete"), UserController.delete);
+router.get("/", requirePermission("users.view"), UserController.getAll);
+router.get("/:id", userRules.id, requirePermission("users.view"), UserController.getById);
+router.post("/", userRules.create, requirePermission("users.create"), UserController.create);
+router.patch("/:id", userRules.update, requirePermission("users.update"), UserController.update);
+router.delete("/:id", userRules.id, requirePermission("users.delete"), UserController.delete);
 
 // Upload/replace a user's avatar — requires users.update permission
 router.post("/:id/avatar", requirePermission("users.update"), avatarUpload, UserController.uploadAvatarById);
 
 // Assign roles / direct permissions — requires users.update permission
-router.patch("/:id/roles",     userRules.assignRoles,       requirePermission("users.update"), UserController.assignRoles);
-router.put("/:id/permissions", userRules.assignPermissions, requirePermission("users.update"),  UserController.assignPermissions);
+router.patch("/:id/roles", userRules.assignRoles, requirePermission("users.update"), UserController.assignRoles);
+router.put("/:id/permissions", userRules.assignPermissions, requirePermission("users.update"), UserController.assignPermissions);
 
 module.exports = router;

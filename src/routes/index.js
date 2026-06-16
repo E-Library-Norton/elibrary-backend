@@ -23,9 +23,9 @@ const downloadRoutes = require('./downloads');
 const statsRoutes = require('./stats');
 const settingsRoutes = require('./settings');
 const activityLogRoutes = require('./activities');
-const reviewRoutes      = require('./reviews');
-const pushRoutes        = require('./push');
-const feedbackRoutes    = require('./feedback');
+const reviewRoutes = require('./reviews');
+const pushRoutes = require('./push');
+const feedbackRoutes = require('./feedback');
 const aiRecommendationRoutes = require('./aiRecommendations');
 // ── Mount 
 
@@ -52,11 +52,11 @@ router.use('/stats', statsRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/activities', activityLogRoutes);
 router.use('/reviews', reviewRoutes);
-router.use('/push',    pushRoutes);
+router.use('/push', pushRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/ai/recommendations', aiRecommendationRoutes);
 
-// ── API info ──────────────────────────────────────────────────────────────────
+// ── API info 
 router.get('/', (req, res) => {
   res.json({
     name: 'E-Library API',

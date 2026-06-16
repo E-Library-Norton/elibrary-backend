@@ -5,10 +5,9 @@ const ResponseFormatter = require('../utils/responseFormatter');
 const { logActivity } = require('../utils/activityLogger');
 const { EVENTS, emitToAdmin } = require('../utils/socket');
 
-// ─────────────────────────────────────────────────────────────────────────────
 
 class FeedbackController {
-  // ── POST /api/feedback ─────────────────────────────────────────────────────
+  // ── POST /api/feedback 
   // Public (optionalAuth) — logged-in user auto-fills name/email from profile
   static async create(req, res, next) {
     try {
@@ -21,7 +20,7 @@ class FeedbackController {
       // If user is logged in, link feedback to their account
       const userId = req.user?.id ?? null;
       const feedbackName = req.user
-        ? `${req.user.firstName } ${req.user.lastName }`.trim() || req.user.username
+        ? `${req.user.firstName} ${req.user.lastName}`.trim() || req.user.username
         : name?.trim() || 'Anonymous';
       const feedbackEmail = req.user?.email || email?.trim() || null;
 
@@ -39,11 +38,11 @@ class FeedbackController {
       // Real-time notification to admin dashboard
       emitToAdmin(EVENTS.FEEDBACK_NEW, {
         feedback: {
-          id:      feedback.id,
-          type:    feedback.type,
+          id: feedback.id,
+          type: feedback.type,
           subject: feedback.subject,
-          name:    feedbackName,
-          rating:  feedback.rating,
+          name: feedbackName,
+          rating: feedback.rating,
         },
       });
 
@@ -60,17 +59,17 @@ class FeedbackController {
       }
 
       return ResponseFormatter.success(res, {
-        id:      feedback.id,
-        type:    feedback.type,
+        id: feedback.id,
+        type: feedback.type,
         subject: feedback.subject,
-        status:  feedback.status,
+        status: feedback.status,
       }, 'Feedback submitted successfully', 201);
     } catch (error) {
       next(error);
     }
   }
 
-  // ── GET /api/feedback/public — public testimonials ──────────────────────────
+  // ── GET /api/feedback/public — public testimonials 
   // No auth required — returns approved feedback with ratings for homepage
   static async getPublicTestimonials(req, res, next) {
     try {
@@ -97,12 +96,12 @@ class FeedbackController {
         const plain = f.get({ plain: true });
         const user = plain.User;
         return {
-          id:        plain.id,
-          name:      user ? `${user.firstName } ${user.lastName }`.trim() || user.username : plain.name,
-          avatar:    user?.avatar || null,
-          message:   plain.message,
-          rating:    plain.rating,
-          type:      plain.type,
+          id: plain.id,
+          name: user ? `${user.firstName} ${user.lastName}`.trim() || user.username : plain.name,
+          avatar: user?.avatar || null,
+          message: plain.message,
+          rating: plain.rating,
+          type: plain.type,
           createdAt: plain.created_at,
         };
       });
@@ -113,24 +112,24 @@ class FeedbackController {
     }
   }
 
-  // ── GET /api/feedback ──────────────────────────────────────────────────────
+  // ── GET /api/feedback ─
   // Admin only — paginated list with filters
   static async getAll(req, res, next) {
     try {
-      const page   = Math.max(1, Number(req.query.page)  || 1);
-      const limit  = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
       // Build filter
       const where = {};
       if (req.query.status) where.status = req.query.status;
-      if (req.query.type)   where.type = req.query.type;
+      if (req.query.type) where.type = req.query.type;
       if (req.query.search) {
         where[Op.or] = [
           { subject: { [Op.iLike]: `%${req.query.search}%` } },
           { message: { [Op.iLike]: `%${req.query.search}%` } },
-          { name:    { [Op.iLike]: `%${req.query.search}%` } },
-          { email:   { [Op.iLike]: `%${req.query.search}%` } },
+          { name: { [Op.iLike]: `%${req.query.search}%` } },
+          { email: { [Op.iLike]: `%${req.query.search}%` } },
         ];
       }
 
@@ -156,9 +155,9 @@ class FeedbackController {
       });
 
       return ResponseFormatter.success(res, {
-        feedbacks:   rows,
-        total:       count,
-        totalPages:  Math.ceil(count / limit),
+        feedbacks: rows,
+        total: count,
+        totalPages: Math.ceil(count / limit),
         currentPage: page,
       });
     } catch (error) {
@@ -166,7 +165,7 @@ class FeedbackController {
     }
   }
 
-  // ── GET /api/feedback/stats ────────────────────────────────────────────────
+  // ── GET /api/feedback/stats 
   // Admin — feedback summary stats
   static async getStats(req, res, next) {
     try {
@@ -187,14 +186,14 @@ class FeedbackController {
       return ResponseFormatter.success(res, {
         total,
         byStatus: Object.fromEntries(byStatus.map(r => [r.status, Number(r.count)])),
-        byType:   Object.fromEntries(byType.map(r => [r.type, Number(r.count)])),
+        byType: Object.fromEntries(byType.map(r => [r.type, Number(r.count)])),
       });
     } catch (error) {
       next(error);
     }
   }
 
-  // ── GET /api/feedback/:id ──────────────────────────────────────────────────
+  // ── GET /api/feedback/:id ──
   // Admin — single feedback detail
   static async getById(req, res, next) {
     try {
@@ -222,7 +221,7 @@ class FeedbackController {
     }
   }
 
-  // ── PATCH /api/feedback/:id ────────────────────────────────────────────────
+  // ── PATCH /api/feedback/:id 
   // Admin — update status, add notes
   static async update(req, res, next) {
     try {
@@ -260,7 +259,7 @@ class FeedbackController {
     }
   }
 
-  // ── DELETE /api/feedback/:id ───────────────────────────────────────────────
+  // ── DELETE /api/feedback/:id 
   // Admin only
   static async delete(req, res, next) {
     try {

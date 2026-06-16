@@ -1,6 +1,5 @@
 // src/config/sequelize-cli-config.js
-// Used by sequelize-cli for migrations & seeders.
-// Reads the same DATABASE_URL from .env / .env.local.
+
 require('dotenv').config({ path: ['.env.local', '.env'] });
 
 // DB_SSL=false → no SSL (local Docker); default → SSL on (Render / external)

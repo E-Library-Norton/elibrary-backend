@@ -1,5 +1,5 @@
 // routes/push.js
-const router         = require('express').Router();
+const router = require('express').Router();
 const PushController = require('../controllers/pushController');
 const { authenticate } = require('../middleware/auth');
 

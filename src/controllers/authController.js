@@ -1,9 +1,9 @@
-const jwt        = require('jsonwebtoken');
-const { Op }     = require('sequelize');
-const { User, Role }    = require('../models');
+const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
+const { User, Role } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 const { ValidationError, AuthenticationError, NotFoundError } = require('../utils/errors');
-const { logActivity }   = require('../utils/activityLogger');
+const { logActivity } = require('../utils/activityLogger');
 const { uploadToR2, extractKeyFromUrl } = require('../utils/cloudR2Upload');
 const { sendOtpEmail } = require('../utils/emailService');
 const r2 = require('../config/r2');
@@ -69,7 +69,7 @@ class AuthController {
       }
       if (!user.isActive) throw new AuthenticationError('Your account has been deactivated. Please contact an administrator');
 
-      // ── 2FA check ──────────────────────────────────────────────────────────────
+      // ── 2FA check 
       if (user.twoFactorEnabled) {
         // Issue a short-lived temp token that must be exchanged via /2fa/verify
         const tempToken = jwt.sign(
@@ -86,9 +86,9 @@ class AuthController {
           hasFaceEnrolled: !!user.faceDescriptor,
         }, 'Two-factor authentication required');
       }
-      // ── end 2FA check ──────────────────────────────────────────────────────────
+      // ── end 2FA check 
 
-      const accessToken  = AuthController.generateAccessToken(user);
+      const accessToken = AuthController.generateAccessToken(user);
       const refreshToken = AuthController.generateRefreshToken(user);
 
       logActivity({ userId: user.id, action: 'login', targetId: user.id, targetName: user.username, targetType: 'user' });
@@ -123,7 +123,7 @@ class AuthController {
       const user = await User.findByPk(decoded.id, {
         include: { association: 'Roles', through: { attributes: [] } },
       });
-      if (!user)          throw new AuthenticationError('User not found');
+      if (!user) throw new AuthenticationError('User not found');
       if (!user.isActive) throw new AuthenticationError('Account is deactivated');
 
       return ResponseFormatter.success(res, {
@@ -281,7 +281,7 @@ class AuthController {
     try {
       const { sessionToken, otp } = req.body;
       if (!sessionToken) throw new ValidationError('Session token is required');
-      if (!otp)          throw new ValidationError('Code is required');
+      if (!otp) throw new ValidationError('Code is required');
 
       // Decode (unverified) to get user ID
       const decoded = jwt.decode(sessionToken);
@@ -322,7 +322,7 @@ class AuthController {
     try {
       const { resetToken, password, confirmPassword } = req.body;
       if (!resetToken) throw new ValidationError('Reset token is required');
-      if (!password)   throw new ValidationError('New password is required');
+      if (!password) throw new ValidationError('New password is required');
       if (password !== confirmPassword) throw new ValidationError('Passwords do not match');
       if (password.length < 8) throw new ValidationError('Password must be at least 8 characters');
 

@@ -1,7 +1,8 @@
-const express          = require('express');
-const multer           = require('multer');
-const router           = express.Router();
-const AuthController   = require('../controllers/authController');
+// src/routes/auth.js
+const express = require('express');
+const multer = require('multer');
+const router = express.Router();
+const AuthController = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 const { userValidation } = require('../middleware/validation');
 const { loginLimiter, authLimiter } = require('../middleware/rateLimiter');
@@ -19,33 +20,34 @@ const avatarUpload = multer({
   },
 }).single('avatar');
 
-router.post('/register',        authLimiter,  userValidation.register, AuthController.register);
-router.post('/login',           loginLimiter, userValidation.login,    AuthController.login);
-router.post('/refresh',                                                 AuthController.refresh);
-router.post('/logout',          authenticate,                           AuthController.logout);
-router.get('/me',               authenticate,            AuthController.getProfile);   // alias: current user
-router.get('/profile',          authenticate,            AuthController.getProfile);
-router.get('/avatar',           authenticate,            AuthController.getAvatar);
-router.patch('/profile',          authenticate,            AuthController.updateProfile);
-router.post('/avatar',          authenticate, avatarUpload, AuthController.uploadAvatar);
-router.put('/change-password', authenticate,            AuthController.changePassword);
+// auth routes
+router.post('/register', authLimiter, userValidation.register, AuthController.register);
+router.post('/login', loginLimiter, userValidation.login, AuthController.login);
+router.post('/refresh', AuthController.refresh);
+router.post('/logout', authenticate, AuthController.logout);
+router.get('/me', authenticate, AuthController.getProfile);
+router.get('/profile', authenticate, AuthController.getProfile);
+router.get('/avatar', authenticate, AuthController.getAvatar);
+router.patch('/profile', authenticate, AuthController.updateProfile);
+router.post('/avatar', authenticate, avatarUpload, AuthController.uploadAvatar);
+router.put('/change-password', authenticate, AuthController.changePassword);
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
-router.post('/verify-otp',      AuthController.verifyOtp);
-router.post('/reset-password',  AuthController.resetPassword);
+router.post('/verify-otp', AuthController.verifyOtp);
+router.post('/reset-password', AuthController.resetPassword);
 
 // ── Two-Factor Authentication 
 const TwoFactorController = require('../controllers/twoFactorController');
 
-router.post('/2fa/setup',          authenticate, TwoFactorController.setup);
-router.post('/2fa/verify-setup',   authenticate, TwoFactorController.verifySetup);
-router.post('/2fa/verify',                       TwoFactorController.verify);       // no auth (uses tempToken)
-router.post('/2fa/disable',              authenticate, TwoFactorController.disable);
-router.post('/2fa/regenerate-recovery',  authenticate, TwoFactorController.regenerateRecovery);
-router.get('/2fa/status',                authenticate, TwoFactorController.status);
-router.post('/2fa/face/enroll',    authenticate, TwoFactorController.enrollFace);
-router.post('/2fa/face/verify',                  TwoFactorController.verifyFace);   // no auth during login
+router.post('/2fa/setup', authenticate, TwoFactorController.setup);
+router.post('/2fa/verify-setup', authenticate, TwoFactorController.verifySetup);
+router.post('/2fa/verify', TwoFactorController.verify);
+router.post('/2fa/disable', authenticate, TwoFactorController.disable);
+router.post('/2fa/regenerate-recovery', authenticate, TwoFactorController.regenerateRecovery);
+router.get('/2fa/status', authenticate, TwoFactorController.status);
+router.post('/2fa/face/enroll', authenticate, TwoFactorController.enrollFace);
+router.post('/2fa/face/verify', TwoFactorController.verifyFace);
 
-// ── OAuth helper: generate tokens & redirect to frontend ────────────────────
+// ── OAuth helper: generate tokens & redirect to frontend
 function oauthCallback(provider) {
   return (req, res, next) => {
     passport.authenticate(provider, { session: false }, (err, user) => {

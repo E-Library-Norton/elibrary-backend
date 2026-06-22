@@ -72,7 +72,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// ── authorize ─────────────────────────────────────────────────────────────────
+// ── authorize 
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) return ResponseFormatter.unauthorized(res, 'Authentication required');
@@ -89,9 +89,6 @@ const authorize = (...allowedRoles) => {
   };
 };
 
-// ── requirePermission ─────────────────────────────────────────────────────────
-// Uses the Roles + Permissions already eagerly loaded by `authenticate` — no
-// extra DB query needed.
 const requirePermission = (permissionName) => {
   return (req, res, next) => {
     if (!req.user) return ResponseFormatter.unauthorized(res, 'Authentication required');
@@ -112,7 +109,7 @@ const requirePermission = (permissionName) => {
   };
 };
 
-// ── optionalAuth ──────────────────────────────────────────────────────────────
+// ── optionalAuth 
 const optionalAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -127,11 +124,6 @@ const optionalAuth = async (req, res, next) => {
   next();
 };
 
-// ── authenticateStream ─────────────────────────────────────────────────────────
-// Like authenticate, but also accepts token from ?token= query param.
-// Use on stream/download routes so URLs can be opened directly in browser.
-// Use this for stream/download endpoints that must be openable directly in a
-// browser (iframe, <a href>, PDF viewer) where custom headers cannot be sent.
 const authenticateStream = async (req, res, next) => {
   try {
     const token =

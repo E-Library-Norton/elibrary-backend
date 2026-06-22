@@ -14,13 +14,13 @@ const { extractKeyFromUrl, uploadToR2 } = require('../utils/cloudR2Upload');
 
 class UserController {
 
-  // ── GET /api/users ────────────────────────────────────────────────────────
+  // ── GET /api/users 
   static async getAll(req, res, next) {
     try {
       const page = Math.max(parseInt(req.query.page) || PAGINATION.DEFAULT_PAGE, 1);
       const limit = Math.min(parseInt(req.query.limit) || PAGINATION.DEFAULT_LIMIT, PAGINATION.MAX_LIMIT);
       const offset = (page - 1) * limit;
-      const search = req.query.search ;
+      const search = req.query.search;
 
       const where = { isDeleted: false };
       if (search) {
@@ -57,7 +57,7 @@ class UserController {
     }
   }
 
-  // ── GET /api/users/:id ────────────────────────────────────────────────────
+  // ── GET /api/users/:id 
   static async getById(req, res, next) {
     try {
       const user = await User.findByPk(req.params.id, {
@@ -75,7 +75,7 @@ class UserController {
     }
   }
 
-  // ── POST /api/users  (admin creates a user directly) ──────────────────────
+  // ── POST /api/users  (admin creates a user directly) 
   static async create(req, res, next) {
     try {
       const { username, email, password, firstName, lastName, studentId, roleIds = [] } = req.body;
@@ -108,7 +108,7 @@ class UserController {
         action: "created",
         targetType: "user",
         targetId: user.id,
-        targetName: `${firstName } ${lastName }`.trim() || username,
+        targetName: `${firstName} ${lastName}`.trim() || username,
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
@@ -123,7 +123,7 @@ class UserController {
     }
   }
 
-  // ── PATCH /api/users/:id ────────────────────────────────────────────────────
+  // ── PATCH /api/users/:id 
   static async update(req, res, next) {
     try {
       const user = await User.findByPk(req.params.id);
@@ -149,7 +149,7 @@ class UserController {
         action: "updated",
         targetType: "user",
         targetId: user.id,
-        targetName: `${user.firstName } ${user.lastName }`.trim() || user.username,
+        targetName: `${user.firstName} ${user.lastName}`.trim() || user.username,
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
@@ -166,7 +166,7 @@ class UserController {
     }
   }
 
-  // ── DELETE /api/users/:id  (soft delete) ──────────────────────────────────
+  // ── DELETE /api/users/:id  (soft delete) 
   static async delete(req, res, next) {
     try {
       if (Number(req.params.id) === Number(req.user.id)) {
@@ -183,7 +183,7 @@ class UserController {
         action: "deleted",
         targetType: "user",
         targetId: user.id,
-        targetName: `${user.firstName } ${user.lastName }`.trim() || user.username,
+        targetName: `${user.firstName} ${user.lastName}`.trim() || user.username,
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
@@ -195,7 +195,7 @@ class UserController {
     }
   }
 
-  // ── PATCH /api/users/:id/roles ──────────────────────────────────────────────
+  // ── PATCH /api/users/:id/roles ──
   static async assignRoles(req, res, next) {
     try {
       const user = await User.findByPk(req.params.id, {
@@ -213,7 +213,7 @@ class UserController {
         action: "updated",
         targetType: "user",
         targetId: user.id,
-        targetName: `${user.firstName } ${user.lastName }`.trim() || user.username,
+        targetName: `${user.firstName} ${user.lastName}`.trim() || user.username,
         details: { roleIds },
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
@@ -229,7 +229,7 @@ class UserController {
     }
   }
 
-  // ── PUT /api/users/:id/permissions ────────────────────────────────────────
+  // ── PUT /api/users/:id/permissions 
   static async assignPermissions(req, res, next) {
     try {
       const user = await User.findByPk(req.params.id, {
@@ -247,7 +247,7 @@ class UserController {
         action: "updated",
         targetType: "user",
         targetId: user.id,
-        targetName: `${user.firstName } ${user.lastName }`.trim() || user.username,
+        targetName: `${user.firstName} ${user.lastName}`.trim() || user.username,
         details: { permissionIds },
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
@@ -263,7 +263,7 @@ class UserController {
     }
   }
 
-  // ── GET /api/users/:id/avatar (public) ──────────────────────────────────────
+  // ── GET /api/users/:id/avatar (public) 
   // Returns a signed R2 redirect for any user's avatar (no auth required).
   static async getAvatarById(req, res, next) {
     try {
@@ -312,7 +312,7 @@ class UserController {
         action: 'updated',
         targetType: 'user',
         targetId: user.id,
-        targetName: `${user.firstName } ${user.lastName }`.trim() || user.username,
+        targetName: `${user.firstName} ${user.lastName}`.trim() || user.username,
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });

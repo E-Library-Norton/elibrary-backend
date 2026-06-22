@@ -9,7 +9,7 @@ const { scanBookCover, syncBookCover, deleteBookCover } = require('../utils/vect
 const { EVENTS, emitToAdmin, emitBroadcast } = require('../utils/socket');
 const { broadcastNotification } = require('../utils/pushNotification');
 
-// ── Shared include for full book detail ───────────────────────────────────────
+// ── Shared include for full book detail 
 const BOOK_INCLUDE = [
   { model: Category, as: 'Category', attributes: ['id', 'name', 'nameKh'] },
   { model: Publisher, as: 'Publisher', attributes: ['id', 'name', 'nameKh'] },
@@ -32,7 +32,7 @@ const BOOK_INCLUDE = [
   },
 ];
 
-// ── Rating subquery attributes (avoids N+1 for star ratings) ─────────────────
+// ── Rating subquery attributes (avoids N+1 for star ratings) 
 const RATING_ATTRIBUTES = [
   [
     literal('(SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.book_id = "Book".id AND r.is_deleted = false)'),
@@ -56,9 +56,9 @@ class BookController {
         isActive, hasVideo, hasAudio, sortBy = 'created_at', sortOrder = 'DESC',
       } = req.query;
 
-      const pageNum  = Math.max(1, Number(page));
+      const pageNum = Math.max(1, Number(page));
       const limitNum = Math.min(100, Math.max(1, Number(limit)));
-      const offset   = (pageNum - 1) * limitNum;
+      const offset = (pageNum - 1) * limitNum;
 
       // ── Dynamic WHERE 
       const where = { isDeleted: false };
@@ -73,12 +73,12 @@ class BookController {
         resolvedCategoryId = cat?.id ?? null;
       }
 
-      if (isActive !== undefined)   where.isActive    = String(isActive) === 'true';
-      if (resolvedCategoryId)       where.categoryId  = resolvedCategoryId;
-      if (publisherId)             where.publisherId     = publisherId;
-      if (departmentId)            where.departmentId    = departmentId;
-      if (typeId)                  where.typeId          = typeId;
-      if (language)                where.language        = language;
+      if (isActive !== undefined) where.isActive = String(isActive) === 'true';
+      if (resolvedCategoryId) where.categoryId = resolvedCategoryId;
+      if (publisherId) where.publisherId = publisherId;
+      if (departmentId) where.departmentId = departmentId;
+      if (typeId) where.typeId = typeId;
+      if (language) where.language = language;
 
       if (hasVideo === 'true') {
         where.videoUrl = { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] };
@@ -92,7 +92,7 @@ class BookController {
       } else if (yearFrom || yearTo) {
         where.publicationYear = {};
         if (yearFrom) where.publicationYear[Op.gte] = Number(yearFrom);
-        if (yearTo)   where.publicationYear[Op.lte] = Number(yearTo);
+        if (yearTo) where.publicationYear[Op.lte] = Number(yearTo);
       }
 
       if (search) {
@@ -116,9 +116,9 @@ class BookController {
 
         const yearNum = Number(search);
         where[Op.or] = [
-          { title:   { [Op.iLike]: term } },
+          { title: { [Op.iLike]: term } },
           { titleKh: { [Op.iLike]: term } },
-          { isbn:    { [Op.iLike]: term } },
+          { isbn: { [Op.iLike]: term } },
           ...(Number.isInteger(yearNum) && yearNum > 0 ? [{ publicationYear: yearNum }] : []),
           ...(authorBookIds.length ? [{ id: { [Op.in]: authorBookIds } }] : []),
         ];
@@ -135,28 +135,28 @@ class BookController {
         where.id = { [Op.in]: authorBookIds };
       }
 
-      // ── Sorting whitelist ──────────────────────────────────────────────
+      // ── Sorting whitelist 
       const ALLOWED_SORTS = ['created_at', 'title', 'views', 'downloads', 'publication_year', 'updated_at'];
-      const safeSort  = ALLOWED_SORTS.includes(sortBy) ? sortBy : 'created_at';
+      const safeSort = ALLOWED_SORTS.includes(sortBy) ? sortBy : 'created_at';
       const safeOrder = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-      // ── Query 1: total count (fast — no JOINs) ────────────────────────
+      // ── Query 1: total count (fast — no JOINs) 
       const total = await Book.count({ where });
 
-      // ── Query 2: paginated books with full includes + ratings ──────────
+      // ── Query 2: paginated books with full includes + ratings 
       const books = await Book.findAll({
         where,
         include: BOOK_INCLUDE,
-        attributes: { 
+        attributes: {
           include: [
             ...RATING_ATTRIBUTES,
             'videoUrl',
             'audioUrl',
             'pdfUrls'
-          ] 
+          ]
         },
-        order:  [[safeSort, safeOrder]],
-        limit:  limitNum,
+        order: [[safeSort, safeOrder]],
+        limit: limitNum,
         offset,
         subQuery: true,
       });
@@ -164,8 +164,8 @@ class BookController {
       return ResponseFormatter.success(res, {
         books,
         total,
-        page:       pageNum,
-        limit:      limitNum,
+        page: pageNum,
+        limit: limitNum,
         totalPages: Math.ceil(total / limitNum),
       });
     } catch (err) {
@@ -179,28 +179,28 @@ class BookController {
       const book = await Book.findOne({
         where: { id: req.params.id, isDeleted: false },
         include: BOOK_INCLUDE,
-        attributes: { 
+        attributes: {
           include: [
             ...RATING_ATTRIBUTES,
             'videoUrl',
             'audioUrl',
             'pdfUrls'
-          ] 
+          ]
         },
       });
       if (!book) throw new NotFoundError('Book not found');
 
       // Fire-and-forget view increment — don't block response
-      book.increment('views').catch(() => {});
-      
+      book.increment('views').catch(() => { });
+
       // Log view activity
-      logActivity({ 
-        userId: req.user?.id, 
-        action: 'view', 
-        targetId: book.id, 
-        targetName: book.title, 
-        targetType: 'book' 
-      }).catch(() => {});
+      logActivity({
+        userId: req.user?.id,
+        action: 'view',
+        targetId: book.id,
+        targetName: book.title,
+        targetType: 'book'
+      }).catch(() => { });
 
       return ResponseFormatter.success(res, book);
     } catch (err) { next(err); }
@@ -281,10 +281,10 @@ class BookController {
         title, titleKh, isbn, publicationYear, description,
         pages,
         categoryId, publisherId, departmentId, typeId,
-        authorIds = [],   // legacy: [{ id, isPrimaryAuthor }] or [id, id]
-        authorNames,      // preferred: ["David", "Samnang"] — find-or-create by name
-        editorNames,      // ["Editor Name"] — find-or-create by name
-        publisherNames,   // ["Publisher Name"] — find-or-create by name
+        authorIds = [],
+        authorNames,
+        editorNames,
+        publisherNames,
         isActive = true,
       } = req.body;
 
@@ -304,7 +304,7 @@ class BookController {
 
       // Files are pre-uploaded via POST /api/upload/single — accept URLs from body
       const coverUrl = req.body.coverUrl ?? null;
-      const pdfUrl   = req.body.pdfUrl   ?? null;
+      const pdfUrl = req.body.pdfUrl ?? null;
       const videoUrl = req.body.videoUrl ?? null;
       const audioUrl = req.body.audioUrl ?? null;
       // pdfUrls: optional array of additional PDF URLs
@@ -426,7 +426,7 @@ class BookController {
         '📚 New Book Added',
         `"${created.title}" is now available in the library.`,
         `/books/${created.id}`
-      ).catch(() => {}); // fire-and-forget
+      ).catch(() => { }); // fire-and-forget
 
       return ResponseFormatter.success(res, created, 'Book created successfully', 201);
     } catch (err) { next(err); }
@@ -463,7 +463,7 @@ class BookController {
 
       // Files are pre-uploaded via POST /api/upload/single — accept URLs from body
       const coverUrl = req.body.coverUrl;
-      const pdfUrl   = req.body.pdfUrl;
+      const pdfUrl = req.body.pdfUrl;
       const videoUrl = req.body.videoUrl;
       const audioUrl = req.body.audioUrl;
       // pdfUrls: optional array of additional PDF URLs
@@ -650,7 +650,7 @@ class BookController {
     try {
       const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
       if (!BookController._sumCache) BookController._sumCache = new Map();
-      const key    = `sum_${req.params.id}`;
+      const key = `sum_${req.params.id}`;
       const cached = BookController._sumCache.get(key);
       if (cached && Date.now() - cached.ts < 24 * 60 * 60 * 1000) {
         return ResponseFormatter.success(res, { summary: cached.text }, 'Book summary (cached)');
@@ -658,7 +658,7 @@ class BookController {
       const book = await Book.findOne({
         where: { id: req.params.id, isDeleted: false },
         include: [
-          { model: Author,   as: 'Authors',  attributes: ['name'] },
+          { model: Author, as: 'Authors', attributes: ['name'] },
           { model: Category, as: 'Category', attributes: ['name'] },
         ],
         attributes: ['id', 'title', 'description', 'publicationYear'],
@@ -674,14 +674,14 @@ Description: ${book.description || '(no description)'}
 Requirements: exactly 3 sentences, academic tone, no first person, mention the key topic and who benefits from reading it.`;
 
       const r = await fetch(`${GEMINI_URL}?key=${process.env.GOOGLE_AI_API_KEY}`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { maxOutputTokens: 200, temperature: 0.3 },
         }),
       });
-      const data    = await r.json();
+      const data = await r.json();
       const summary = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
         || book.description?.slice(0, 400)
         || 'No summary available.';

@@ -1,15 +1,15 @@
 // routes/aiRecommendations.js
-const router                    = require('express').Router();
-const rateLimit                 = require('express-rate-limit');
+const router = require('express').Router();
+const rateLimit = require('express-rate-limit');
 const AIRecommendationController = require('../controllers/aiRecommendationController');
-const { authenticate }          = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
-// ── Rate limiter: 20 AI requests per minute per IP ──────────────────────────
+// ── Rate limiter: 20 AI requests per minute per IP 
 const aiLimiter = rateLimit({
-  windowMs:        60 * 1000,   // 1 minute
-  max:             20,
+  windowMs: 60 * 1000,   // 1 minute
+  max: 20,
   standardHeaders: true,
-  legacyHeaders:   false,
+  legacyHeaders: false,
   message: {
     success: false,
     message: 'Too many AI requests — please wait a moment before trying again',
@@ -19,32 +19,12 @@ const aiLimiter = rateLimit({
 // Apply rate limit to ALL routes in this file
 router.use(aiLimiter);
 
-/**
- * GET /api/ai/recommendations
- *
- * Use ONE of these query params:
- *   ?category=Programming       → recommend by category/genre
- *   ?bookTitle=Clean+Code       → recommend similar books by title
- *   ?userId=current             → personalised recommendations from download history
- *                                 (requires Bearer token)
- *
- * Response shape:
- * {
- *   success: true,
- *   data: {
- *     source: "library" | "ai-general" | "popular",
- *     recommendations: [ Book | {title, author, reason} ],
- *     total: number,
- *     cached?: boolean
- *   }
- * }
- */
 router.get('/', (req, res, next) => {
   const { category, bookTitle, userId } = req.query;
 
-  if (category)  return AIRecommendationController.byCategory(req, res, next);
+  if (category) return AIRecommendationController.byCategory(req, res, next);
   if (bookTitle) return AIRecommendationController.byBook(req, res, next);
-  if (userId)    return authenticate(req, res, () => AIRecommendationController.byUserHistory(req, res, next));
+  if (userId) return authenticate(req, res, () => AIRecommendationController.byUserHistory(req, res, next));
 
   return res.status(400).json({
     success: false,

@@ -1,11 +1,11 @@
 const dotenv = require("dotenv");
 dotenv.config({ path: ['.env.local', '.env'] });
 
-const http        = require('http');
-const express     = require("express");
-const cors        = require("cors");
-const helmet      = require("helmet");
-const morgan      = require("morgan");
+const http = require('http');
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
 const compression = require("compression");
 const { sequelize } = require("./config/database");
 const { initSocket } = require('./utils/socket');
@@ -23,7 +23,7 @@ const ALLOWED_ORIGINS = [
   'https://elibrary.nortonu.app',
 ];
 
-// ── Socket.IO (real-time) ─────────────────────────────────────────────────────
+// ── Socket.IO (real-time) 
 initSocket(httpServer, ALLOWED_ORIGINS);
 
 app.get("/", (req, res) => {
@@ -74,7 +74,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   res.status(err.status || 500).json({
     success: false,
     error: {
-      code:    err.code    || "INTERNAL_SERVER_ERROR",
+      code: err.code || "INTERNAL_SERVER_ERROR",
       message: err.message || "Internal server error",
       details: err.details || null,
     },

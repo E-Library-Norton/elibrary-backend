@@ -2,14 +2,14 @@
 // Handles TOTP setup (QR code), OTP verification, recovery codes, face enrollment & verification.
 'use strict';
 
-const crypto            = require('crypto');
-const speakeasy         = require('speakeasy');
-const QRCode            = require('qrcode');
-const { User }          = require('../models');
+const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+const { User } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 const { ValidationError, AuthenticationError } = require('../utils/errors');
 
-// ── Recovery-code helpers ───────────────────────────────────────────────────
+// ── Recovery-code helpers 
 function generateRecoveryCodes(count = 8) {
   return Array.from({ length: count }, () =>
     crypto.randomBytes(4).toString('hex').toUpperCase().replace(/(.{4})(.{4})/, '$1-$2')
@@ -47,8 +47,8 @@ class TwoFactorController {
       const qrDataUrl = await QRCode.toDataURL(secret.otpauth_url);
 
       return ResponseFormatter.success(res, {
-        qrCode:    qrDataUrl,
-        secret:    secret.base32,   // user can manually enter this in their app
+        qrCode: qrDataUrl,
+        secret: secret.base32,   // user can manually enter this in their app
         otpauthUrl: secret.otpauth_url,
       }, 'Scan this QR code with your authenticator app, then verify with a code.');
     } catch (err) { next(err); }
@@ -67,17 +67,17 @@ class TwoFactorController {
       if (!user.twoFactorSecret) throw new ValidationError('No 2FA secret found. Call /2fa/setup first.');
 
       const isValid = speakeasy.totp.verify({
-        secret:   user.twoFactorSecret,
+        secret: user.twoFactorSecret,
         encoding: 'base32',
-        token:    otpToken,
-        window:   2,    // allow 2 time steps (±30 seconds)
+        token: otpToken,
+        window: 2,    // allow 2 time steps (±30 seconds)
       });
 
       if (!isValid) throw new AuthenticationError('Invalid OTP code. Please try again.');
 
       // Generate recovery codes, store hashed versions
       const recoveryCodes = generateRecoveryCodes(8);
-      const hashedCodes   = recoveryCodes.map(hashCode);
+      const hashedCodes = recoveryCodes.map(hashCode);
 
       await user.update({
         twoFactorEnabled: true,
@@ -98,10 +98,10 @@ class TwoFactorController {
     try {
       const { token: otpToken, recoveryCode, tempToken } = req.body;
       if (!otpToken && !recoveryCode) throw new ValidationError('OTP token or recovery code is required');
-      if (!tempToken)  throw new ValidationError('Temporary login token is required');
+      if (!tempToken) throw new ValidationError('Temporary login token is required');
 
       // Decode the temp token
-      const jwt     = require('jsonwebtoken');
+      const jwt = require('jsonwebtoken');
       let decoded;
       try {
         decoded = jwt.verify(tempToken, process.env.ACCESS_TOKEN_SECRET);
@@ -133,10 +133,10 @@ class TwoFactorController {
       } else {
         // ── TOTP path ──
         verified = speakeasy.totp.verify({
-          secret:   user.twoFactorSecret,
+          secret: user.twoFactorSecret,
           encoding: 'base32',
-          token:    otpToken,
-          window:   3,
+          token: otpToken,
+          window: 3,
         });
       }
 
@@ -144,7 +144,7 @@ class TwoFactorController {
 
       // Issue the real access + refresh tokens
       const AuthController = require('./authController');
-      const accessToken  = AuthController.generateAccessToken(user);
+      const accessToken = AuthController.generateAccessToken(user);
       const refreshToken = AuthController.generateRefreshToken(user);
 
       return ResponseFormatter.success(res, {
@@ -176,10 +176,10 @@ class TwoFactorController {
 
       if (otpToken) {
         authorized = speakeasy.totp.verify({
-          secret:   user.twoFactorSecret,
+          secret: user.twoFactorSecret,
           encoding: 'base32',
-          token:    otpToken,
-          window:   2,
+          token: otpToken,
+          window: 2,
         });
       }
 
@@ -193,9 +193,9 @@ class TwoFactorController {
 
       await user.update({
         twoFactorEnabled: false,
-        twoFactorSecret:  null,
-        faceDescriptor:   null,
-        recoveryCodes:    null,
+        twoFactorSecret: null,
+        faceDescriptor: null,
+        recoveryCodes: null,
       });
 
       return ResponseFormatter.success(res, { twoFactorEnabled: false },
@@ -214,7 +214,7 @@ class TwoFactorController {
 
       return ResponseFormatter.success(res, {
         twoFactorEnabled: user.twoFactorEnabled,
-        hasFaceEnrolled:  !!user.faceDescriptor,
+        hasFaceEnrolled: !!user.faceDescriptor,
         recoveryCodesRemaining: stored.length,
       }, 'Two-factor status');
     } catch (err) { next(err); }
@@ -235,7 +235,7 @@ class TwoFactorController {
       if (!valid) throw new AuthenticationError('Incorrect password');
 
       const recoveryCodes = generateRecoveryCodes(8);
-      const hashedCodes   = recoveryCodes.map(hashCode);
+      const hashedCodes = recoveryCodes.map(hashCode);
       await user.update({ recoveryCodes: JSON.stringify(hashedCodes) });
 
       return ResponseFormatter.success(res, { recoveryCodes },
@@ -307,7 +307,7 @@ class TwoFactorController {
       }
 
       return ResponseFormatter.success(res, {
-        match:    true,
+        match: true,
         distance: parseFloat(distance.toFixed(4)),
       }, 'Face verified successfully.');
     } catch (err) { next(err); }

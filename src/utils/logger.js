@@ -6,10 +6,10 @@ const fs = require("fs").promises;
 const path = require("path");
 
 class Logger {
-constructor() {
-  this.logDir = path.join(__dirname, "../../logs");
-  this.ready = this.ensureLogDir();
-}
+  constructor() {
+    this.logDir = path.join(__dirname, "../../logs");
+    this.ready = this.ensureLogDir();
+  }
 
 
   async ensureLogDir() {

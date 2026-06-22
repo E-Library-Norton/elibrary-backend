@@ -1,5 +1,5 @@
 // ============================================
-// FILE: src/models/Book.js (UPDATED)
+// FILE: src/models/Book.js
 // ============================================
 
 const { DataTypes } = require("sequelize");
@@ -9,103 +9,103 @@ const Book = sequelize.define(
   "Book",
   {
     id: {
-      type:          DataTypes.BIGINT,
-      primaryKey:    true,
+      type: DataTypes.BIGINT,
+      primaryKey: true,
       autoIncrement: true,
     },
     title: {
-      type:      DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       allowNull: false,
     },
     titleKh: {
-      type:  DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       field: 'title_kh',
     },
     isbn: {
-      type:   DataTypes.STRING(20),
+      type: DataTypes.STRING(20),
       unique: true,
     },
     publicationYear: {
-      type:  DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
       field: 'publication_year',
     },
     description: {
       type: DataTypes.TEXT,
     },
     coverUrl: {
-      type:  DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       field: 'cover_url',
     },
     pdfUrl: {
-      type:  DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       field: 'pdf_url',
     },
     pdfUrls: {
-      type:         DataTypes.JSONB,
-      field:        'pdf_urls',
-      allowNull:    true,
+      type: DataTypes.JSONB,
+      field: 'pdf_urls',
+      allowNull: true,
       defaultValue: null,
-      comment:      'Array of additional PDF file URLs',
+      comment: 'Array of additional PDF file URLs',
     },
     videoUrl: {
-      type:  DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       field: 'video_url',
     },
     audioUrl: {
-      type:  DataTypes.STRING(500),
+      type: DataTypes.STRING(500),
       field: 'audio_url',
     },
     pages: {
       type: DataTypes.INTEGER,
     },
     views: {
-      type:         DataTypes.INTEGER,
-      allowNull:    false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
       defaultValue: 0,
     },
     downloads: {
-      type:         DataTypes.INTEGER,
-      allowNull:    false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
       defaultValue: 0,
     },
     shares: {
-      type:         DataTypes.INTEGER,
-      allowNull:    false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
       defaultValue: 0,
     },
     language: {
-      type:         DataTypes.STRING(10),
-      allowNull:    true,
+      type: DataTypes.STRING(10),
+      allowNull: true,
       defaultValue: null,
-      comment:      'ISO 639-1 code e.g. en, km, fr',
+      comment: 'ISO 639-1 code e.g. en, km, fr',
     },
     publisherId: {
-      type:  DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
       field: 'publisher_id',
     },
     categoryId: {
-      type:  DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
       field: 'category_id',
     },
     departmentId: {
-      type:  DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
       field: 'department_id',
     },
     typeId: {
-      type:  DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
       field: 'type_id',
     },
     isActive: {
-      type:         DataTypes.BOOLEAN,
-      allowNull:    false,
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
       defaultValue: true,
-      field:        'is_active',
+      field: 'is_active',
     },
     isDeleted: {
-      type:         DataTypes.BOOLEAN,
-      allowNull:    false,
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
       defaultValue: false,
-      field:        'is_deleted',
+      field: 'is_deleted',
     },
   },
   {

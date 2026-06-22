@@ -4,8 +4,8 @@ const { User } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 
 // ── 30s user cache — avoids hitting DB 
-const _userCache = new Map(); 
-const USER_CACHE_TTL = 60_000; 
+const _userCache = new Map();
+const USER_CACHE_TTL = 60_000;
 
 function getCachedUser(userId) {
   const entry = _userCache.get(userId);
@@ -89,6 +89,9 @@ const authorize = (...allowedRoles) => {
   };
 };
 
+// ── requirePermission 
+// Uses the Roles + Permissions already eagerly loaded by `authenticate` — no
+// extra DB query needed.
 const requirePermission = (permissionName) => {
   return (req, res, next) => {
     if (!req.user) return ResponseFormatter.unauthorized(res, 'Authentication required');
@@ -123,6 +126,8 @@ const optionalAuth = async (req, res, next) => {
   } catch { /* silent */ }
   next();
 };
+
+// ── authenticateStream 
 
 const authenticateStream = async (req, res, next) => {
   try {

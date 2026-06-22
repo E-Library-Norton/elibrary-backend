@@ -1,13 +1,13 @@
 // src/config/passport.js
-const passport        = require('passport');
-const GoogleStrategy  = require('passport-google-oauth20').Strategy;
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
-const GitHubStrategy  = require('passport-github2').Strategy;
-const { Op }          = require('sequelize');
-const { User, Role }  = require('../models');
+const GitHubStrategy = require('passport-github2').Strategy;
+const { Op } = require('sequelize');
+const { User, Role } = require('../models');
 
-const BACKEND_URL  = process.env.BACKEND_URL  ;
-const FRONTEND_URL = process.env.FRONTEND_URL ;
+const BACKEND_URL = process.env.BACKEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Skip strategies with placeholder values like "...", "your_xxx", etc.
 const isReal = (v) => {
@@ -16,7 +16,7 @@ const isReal = (v) => {
   return s.length > 8 && !s.startsWith('...') && !s.startsWith('your_');
 };
 
-// ── Helper: find or create OAuth user ────────────────────────────────────────
+// ── Helper: find or create OAuth user 
 async function findOrCreateOAuthUser({ provider, oauthId, email, firstName, lastName, avatar }) {
   // 1. Look up by provider + oauthId
   let user = await User.findOne({
@@ -40,13 +40,13 @@ async function findOrCreateOAuthUser({ provider, oauthId, email, firstName, last
     const username = `${provider}_${oauthId}`.slice(0, 50);
     user = await User.create({
       username,
-      email:         email || `${provider}_${oauthId}@oauth.local`,
-      password:      null,
-      firstName:     firstName || null,
-      lastName:      lastName  || null,
-      avatar:        avatar    || null,
+      email: email || `${provider}_${oauthId}@oauth.local`,
+      password: null,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      avatar: avatar || null,
       oauthProvider: provider,
-      oauthId:       String(oauthId),
+      oauthId: String(oauthId),
     });
     const defaultRole = await Role.findOne({ where: { name: 'user' } });
     if (defaultRole) await user.addRole(defaultRole);
@@ -58,20 +58,20 @@ async function findOrCreateOAuthUser({ provider, oauthId, email, firstName, last
   return user;
 }
 
-// ── Google ────────────────────────────────────────────────────────────────────
+// ── Google ──
 if (isReal(process.env.GOOGLE_CLIENT_ID) && isReal(process.env.GOOGLE_CLIENT_SECRET)) {
   passport.use(new GoogleStrategy(
     {
-      clientID:     process.env.GOOGLE_CLIENT_ID,
+      clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL:  `${BACKEND_URL}/api/auth/google/callback`,
+      callbackURL: `${BACKEND_URL}/api/auth/google/callback`,
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
-        const email     = profile.emails?.[0]?.value;
+        const email = profile.emails?.[0]?.value;
         const firstName = profile.name?.givenName;
-        const lastName  = profile.name?.familyName;
-        const avatar    = profile.photos?.[0]?.value;
+        const lastName = profile.name?.familyName;
+        const avatar = profile.photos?.[0]?.value;
         const user = await findOrCreateOAuthUser({ provider: 'google', oauthId: profile.id, email, firstName, lastName, avatar });
         done(null, user);
       } catch (err) { done(err, null); }
@@ -79,22 +79,22 @@ if (isReal(process.env.GOOGLE_CLIENT_ID) && isReal(process.env.GOOGLE_CLIENT_SEC
   ));
 }
 
-// ── Facebook ──────────────────────────────────────────────────────────────────
+// ── Facebook 
 if (isReal(process.env.FACEBOOK_APP_ID) && isReal(process.env.FACEBOOK_APP_SECRET)) {
   passport.use(new FacebookStrategy(
     {
-      clientID:      process.env.FACEBOOK_APP_ID,
-      clientSecret:  process.env.FACEBOOK_APP_SECRET,
-      callbackURL:   `${BACKEND_URL}/api/auth/facebook/callback`,
+      clientID: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      callbackURL: `${BACKEND_URL}/api/auth/facebook/callback`,
       profileFields: ['id', 'emails', 'name', 'photos'],
-      enableProof:   true,
+      enableProof: true,
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
-        const email     = profile.emails?.[0]?.value ?? null;
-        const firstName = profile.name?.givenName  ?? null;
-        const lastName  = profile.name?.familyName ?? null;
-        const avatar    = profile.photos?.[0]?.value ?? null;
+        const email = profile.emails?.[0]?.value ?? null;
+        const firstName = profile.name?.givenName ?? null;
+        const lastName = profile.name?.familyName ?? null;
+        const avatar = profile.photos?.[0]?.value ?? null;
         const user = await findOrCreateOAuthUser({ provider: 'facebook', oauthId: profile.id, email, firstName, lastName, avatar });
         done(null, user);
       } catch (err) { done(err, null); }
@@ -102,22 +102,22 @@ if (isReal(process.env.FACEBOOK_APP_ID) && isReal(process.env.FACEBOOK_APP_SECRE
   ));
 }
 
-// ── GitHub ────────────────────────────────────────────────────────────────────
+// ── GitHub 
 if (isReal(process.env.GITHUB_CLIENT_ID) && isReal(process.env.GITHUB_CLIENT_SECRET)) {
   passport.use(new GitHubStrategy(
     {
-      clientID:     process.env.GITHUB_CLIENT_ID,
+      clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL:  `${BACKEND_URL}/api/auth/github/callback`,
-      scope:        ['user:email'],
+      callbackURL: `${BACKEND_URL}/api/auth/github/callback`,
+      scope: ['user:email'],
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
-        const email     = profile.emails?.[0]?.value;
+        const email = profile.emails?.[0]?.value;
         const nameParts = (profile.displayName || '').split(' ');
         const firstName = nameParts[0] || null;
-        const lastName  = nameParts.slice(1).join(' ') || null;
-        const avatar    = profile.photos?.[0]?.value;
+        const lastName = nameParts.slice(1).join(' ') || null;
+        const avatar = profile.photos?.[0]?.value;
         const user = await findOrCreateOAuthUser({ provider: 'github', oauthId: profile.id, email, firstName, lastName, avatar });
         done(null, user);
       } catch (err) { done(err, null); }

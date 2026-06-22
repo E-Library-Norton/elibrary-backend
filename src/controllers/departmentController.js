@@ -59,9 +59,9 @@ class DepartmentController {
         if (exists) throw new ConflictError(`Department ${code} already exists`);
       }
       await dept.update({
-        ...(name        !== undefined && { name }),
-        ...(nameKh      !== undefined && { nameKh }),
-        ...(code        !== undefined && { code }),
+        ...(name !== undefined && { name }),
+        ...(nameKh !== undefined && { nameKh }),
+        ...(code !== undefined && { code }),
         ...(description !== undefined && { description }),
       });
 

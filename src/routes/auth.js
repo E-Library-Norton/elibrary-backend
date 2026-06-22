@@ -34,6 +34,8 @@ router.put('/change-password', authenticate, AuthController.changePassword);
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
 router.post('/verify-otp', AuthController.verifyOtp);
 router.post('/reset-password', AuthController.resetPassword);
+router.post('/verify-otp', AuthController.verifyOtp);
+router.post('/reset-password', AuthController.resetPassword);
 
 // ── Two-Factor Authentication 
 const TwoFactorController = require('../controllers/twoFactorController');

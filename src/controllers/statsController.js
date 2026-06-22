@@ -32,7 +32,7 @@ class StatsController {
 
             // 1. Basic counts — run in parallel
             const [totalBooks, totalMembers, totalActiveMembers, totalAuthors, totalCategories, totalDownloads] =
-                    await Promise.all([
+                await Promise.all([
                     Book.count({ where: { isDeleted: false } }).catch(err => { console.error("Error counting books:", err); return 0; }),
                     User.count({ where: { isDeleted: false } }).catch(err => { console.error("Error counting users:", err); return 0; }),
                     User.count({ where: { isActive: true, isDeleted: false } }).catch(err => { console.error("Error counting active users:", err); return 0; }),
@@ -64,7 +64,7 @@ class StatsController {
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
             thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-            // ── Run ALL independent queries in parallel ──────────────────────
+            // ── Run ALL independent queries in parallel 
             const [
                 typeRows,
                 yearRows,
@@ -241,7 +241,7 @@ class StatsController {
                 }).catch(err => { console.error("Error in query 15:", err); return []; }),
             ]);
 
-            // ── Process results (pure JS, no DB) ────────────────────────────
+            // ── Process results (pure JS, no DB) ──────
 
             // 1. Material type counts
             const typeCounts = { theses: 0, journals: 0, articles: 0 };
@@ -275,7 +275,7 @@ class StatsController {
                 // Safe date generation (starts at 1st of month)
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                
+
                 const newBooks = parseInt(monthlyBookRows.find(r => r.month === monthStr)?.count) || 0;
                 const joins = parseInt(monthlyJoinRows.find(r => r.month === monthStr)?.count) || 0;
                 const downloads = parseInt(monthlyDownloadRows.find(r => r.month === monthStr)?.count) || 0;
@@ -364,11 +364,11 @@ class StatsController {
             // 8. Role activity stats
             const roleMap = {};
             for (const row of roleRows) {
-                const roleName = row.User?.Roles?.name || 
-                                row['User.Roles.name'] || 
-                                row.User?.Roles?.[0]?.name || 
-                                'Unknown';
-                                
+                const roleName = row.User?.Roles?.name ||
+                    row['User.Roles.name'] ||
+                    row.User?.Roles?.[0]?.name ||
+                    'Unknown';
+
                 if (!roleMap[roleName]) roleMap[roleName] = { create_count: 0, update_count: 0, delete_count: 0 };
                 const cnt = parseInt(row.count) || 0;
                 if (row.action === 'created') roleMap[roleName].create_count += cnt;
@@ -401,7 +401,7 @@ class StatsController {
                 role_activity_stats: roleActivityStats,
                 recent_activities: recentActivities,
                 total_activities: totalCount || 0,
-                _key: cacheKey, 
+                _key: cacheKey,
             };
 
             // Cache the result

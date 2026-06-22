@@ -6,7 +6,7 @@ const { logActivity } = require("../utils/activityLogger");
 
 class RoleController {
 
-  // ── GET /api/roles ─────────────────────────────────────────────────────────
+  // ── GET /api/roles 
   static async getAll(req, res, next) {
     try {
       const roles = await Role.findAll({
@@ -19,7 +19,7 @@ class RoleController {
     }
   }
 
-  // ── GET /api/roles/:id ──────────────────────────────────────────────────────
+  // ── GET /api/roles/:id 
   static async getById(req, res, next) {
     try {
       const role = await Role.findByPk(req.params.id, {
@@ -32,7 +32,7 @@ class RoleController {
     }
   }
 
-  // ── POST /api/roles ─────────────────────────────────────────────────────────
+  // ── POST /api/roles 
   static async create(req, res, next) {
     try {
       const { name, description, permissionIds = [] } = req.body;
@@ -70,7 +70,7 @@ class RoleController {
     }
   }
 
-  // ── PUT /api/roles/:id ──────────────────────────────────────────────────────
+  // ── PUT /api/roles/:id 
   static async update(req, res, next) {
     try {
       const role = await Role.findByPk(req.params.id);
@@ -101,7 +101,7 @@ class RoleController {
     }
   }
 
-  // ── DELETE /api/roles/:id ───────────────────────────────────────────────────
+  // ── DELETE /api/roles/:id 
   static async delete(req, res, next) {
     try {
       const role = await Role.findByPk(req.params.id);
@@ -125,7 +125,7 @@ class RoleController {
     }
   }
 
-  // ── PUT /api/roles/:id/permissions ──────────────────────────────────────────
+  // ── PUT /api/roles/:id/permissions 
   // Full sync — replaces all permissions on this role with the given list
   static async assignRolePermissions(req, res, next) {
     try {

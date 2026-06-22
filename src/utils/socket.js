@@ -54,7 +54,7 @@ function getIO() {
   return _io;
 }
 
-// ── Emit helpers (prevent duplicate delivery) ────────────────────────────────
+// ── Emit helpers (prevent duplicate delivery) 
 
 /**
  * Emit to the 'admin' room only.
@@ -83,20 +83,20 @@ function emitBroadcast(event, payload, adminPayload) {
   emitExceptAdmin(event, payload);
 }
 
-// ── Event name constants (single source of truth) ────────────────────────────
+// ── Event name constants (single source of truth) 
 
 /** Emitted to the 'admin' room whenever any CRUD activity is logged */
 const EVENTS = {
-  ACTIVITY_NEW:      'activity:new',       // { activity }
-  STATS_UPDATED:     'stats:updated',      // { books, members, categories }
-  BOOK_CREATED:      'book:created',       // { book }
-  BOOK_UPDATED:      'book:updated',       // { book }
-  BOOK_DELETED:      'book:deleted',       // { bookId }
-  REVIEW_CREATED:    'review:created',     // { review, bookTitle }
-  REVIEW_UPDATED:    'review:updated',     // { review, bookTitle }
-  REVIEW_DELETED:    'review:deleted',     // { reviewId, bookTitle }
-  FEEDBACK_NEW:      'feedback:new',       // { feedback }
-  NOTIFICATION_NEW:  'notification:new',   // { title, body, url }
+  ACTIVITY_NEW: 'activity:new',       // { activity }
+  STATS_UPDATED: 'stats:updated',      // { books, members, categories }
+  BOOK_CREATED: 'book:created',       // { book }
+  BOOK_UPDATED: 'book:updated',       // { book }
+  BOOK_DELETED: 'book:deleted',       // { bookId }
+  REVIEW_CREATED: 'review:created',     // { review, bookTitle }
+  REVIEW_UPDATED: 'review:updated',     // { review, bookTitle }
+  REVIEW_DELETED: 'review:deleted',     // { reviewId, bookTitle }
+  FEEDBACK_NEW: 'feedback:new',       // { feedback }
+  NOTIFICATION_NEW: 'notification:new',   // { title, body, url }
 };
 
 module.exports = { initSocket, getIO, EVENTS, emitToAdmin, emitExceptAdmin, emitBroadcast };

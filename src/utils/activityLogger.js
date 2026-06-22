@@ -18,19 +18,19 @@ async function logActivity({ userId, action, targetId, targetName, targetType, m
             userId, action, targetId, targetName, targetType, metadata,
         });
 
-        // ── Real-time: push new activity to every admin client ────────────────
+        // ── Real-time: push new activity to every admin client 
         try {
             const io = getIO();
             io.to('admin').emit(EVENTS.ACTIVITY_NEW, {
                 activity: {
-                    id:         activity.id,
+                    id: activity.id,
                     userId,
                     action,
                     targetType,
                     targetId,
                     targetName,
                     metadata,
-                    createdAt:  activity.createdAt,
+                    createdAt: activity.createdAt,
                 },
             });
         } catch {

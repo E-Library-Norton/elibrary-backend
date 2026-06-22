@@ -47,8 +47,8 @@ class MaterialTypeController {
       if (!type) throw new NotFoundError('Material type not found');
       const { name, nameKh, description } = req.body;
       await type.update({
-        ...(name        !== undefined && { name }),
-        ...(nameKh      !== undefined && { nameKh }),
+        ...(name !== undefined && { name }),
+        ...(nameKh !== undefined && { nameKh }),
         ...(description !== undefined && { description }),
       });
 

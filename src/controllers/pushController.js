@@ -1,15 +1,15 @@
 // controllers/pushController.js
 const { PushSubscription } = require('../models');
-const ResponseFormatter    = require('../utils/responseFormatter');
+const ResponseFormatter = require('../utils/responseFormatter');
 const { VAPID_PUBLIC_KEY } = require('../utils/pushNotification');
 
 class PushController {
-  // ── GET /api/push/vapid-public-key ───────────────────────────────────────
+  // ── GET /api/push/vapid-public-key 
   static async getVapidPublicKey(req, res) {
     return ResponseFormatter.success(res, { publicKey: VAPID_PUBLIC_KEY || null });
   }
 
-  // ── POST /api/push/subscribe ─────────────────────────────────────────────
+  // ── POST /api/push/subscribe 
   // Body: { endpoint, keys: { p256dh, auth } }
   static async subscribe(req, res, next) {
     try {
@@ -42,7 +42,7 @@ class PushController {
     }
   }
 
-  // ── DELETE /api/push/unsubscribe ─────────────────────────────────────────
+  // ── DELETE /api/push/unsubscribe ──
   // Body: { endpoint }
   static async unsubscribe(req, res, next) {
     try {

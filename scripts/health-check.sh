@@ -25,9 +25,9 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BACKEND_URL="${BACKEND_URL:-https://user-backend-t30r.onrender.com}"
-FRONTEND_URL="${FRONTEND_URL:-https://frontend.samnangchan.shop}"
-DASHBOARD_URL="${DASHBOARD_URL:-https://admin-elibrary.samnangchan.shop}"
+BACKEND_URL="${BACKEND_URL:-https://elibrary-api.nortonu.app}"
+FRONTEND_URL="${FRONTEND_URL:-https://elibrary.nortonu.app}"
+DASHBOARD_URL="${DASHBOARD_URL:-https://admin-elibrary.nortonu.app}"
 TIMEOUT=15         # seconds
 SSL_WARN_DAYS=14   # warn if cert expires in less than N days
 
@@ -148,8 +148,8 @@ fi
 # 1. Backend root
 check_url "Backend Root (/)" "${BACKEND_URL}/"
 
-# 2. Backend API — public books list
-check_url "Backend API (/api/books)" "${BACKEND_URL}/api/books"
+# 2. Backend API — get a book (lightweight keep-alive)
+check_url "Backend API — Get A Book (/api/books?limit=1)" "${BACKEND_URL}/api/books?limit=1"
 
 # 3. Backend Auth (should return 401 without token = auth is working)
 check_url "Backend Auth Guard" "${BACKEND_URL}/api/auth/profile" "401"
@@ -161,9 +161,9 @@ check_url "Student Frontend" "${FRONTEND_URL}"
 check_url "Admin Dashboard" "${DASHBOARD_URL}" "307"
 
 # 5. SSL Certificates
-check_ssl "frontend" "frontend.samnangchan.shop"
-check_ssl "dashboard" "admin-elibrary.samnangchan.shop"
-check_ssl "backend" "user-backend-t30r.onrender.com"
+check_ssl "frontend" "elibrary.nortonu.app"
+check_ssl "dashboard" "admin-elibrary.nortonu.app"
+check_ssl "backend" "elibrary-api.nortonu.app"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 if $JSON_MODE; then

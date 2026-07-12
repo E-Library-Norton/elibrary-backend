@@ -5,6 +5,12 @@ require("dotenv").config({ path: ['.env.local', '.env'] });
 // Default: SSL enabled (for Render managed DB / any external SSL DB).
 const useSSL = (process.env.DB_SSL ?? 'true').toLowerCase() !== 'false';
 
+if (!process.env.DATABASE_URL) {
+  console.error("❌ Error: DATABASE_URL environment variable is not defined!");
+  console.error("👉 Please ensure DATABASE_URL is configured in your production environment variables (e.g. Render Dashboard) or in your local config (.env.local / .env).");
+  process.exit(1);
+}
+
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   protocol: "postgres",

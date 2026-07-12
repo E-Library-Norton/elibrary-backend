@@ -42,6 +42,7 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true, // only count failures toward the cap
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   keyGenerator: (req) => {
     // Key by IP + identifier so per-account brute-force is also tracked
     const identifier = (req.body && (req.body.email || req.body.username || req.body.studentId)) || '';

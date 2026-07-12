@@ -47,7 +47,7 @@ RUN chmod +x docker-entrypoint.sh
 # Switch to non-root user
 USER elibrary
 
-# ── Runtime config ────────────────────────────────────────────────────────────
+# ── Runtime config 
 ENV NODE_ENV=production
 ENV PORT=5005
 
@@ -55,7 +55,7 @@ EXPOSE 5005
 
 # Health check — lightweight ping to the API root
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:5005/ || exit 1
+  CMD curl -f http://localhost:${PORT:-5005}/ || exit 1
 
 # Use dumb-init so Node gets proper SIGTERM signals
 ENTRYPOINT ["dumb-init", "--"]

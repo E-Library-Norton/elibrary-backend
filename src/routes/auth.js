@@ -5,12 +5,7 @@ const router = express.Router();
 const AuthController = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 const { userValidation } = require('../middleware/validation');
-const {
-  loginLimiter,
-  authLimiter,
-  passwordResetRequestLimiter,
-  passwordResetActionLimiter,
-} = require('../middleware/rateLimiter');
+const { loginLimiter, authLimiter } = require('../middleware/rateLimiter');
 const { MAX_FILE_SIZES, FILE_TYPES } = require('../config/constants');
 const { passport, FRONTEND_URL } = require('../config/passport');
 const jwt = require('jsonwebtoken');
@@ -36,9 +31,11 @@ router.get('/avatar', authenticate, AuthController.getAvatar);
 router.patch('/profile', authenticate, AuthController.updateProfile);
 router.post('/avatar', authenticate, avatarUpload, AuthController.uploadAvatar);
 router.put('/change-password', authenticate, AuthController.changePassword);
-router.post('/forgot-password', passwordResetRequestLimiter, AuthController.forgotPassword);
-router.post('/verify-otp', passwordResetActionLimiter, AuthController.verifyOtp);
-router.post('/reset-password', passwordResetActionLimiter, AuthController.resetPassword);
+router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
+router.post('/verify-otp', AuthController.verifyOtp);
+router.post('/reset-password', AuthController.resetPassword);
+router.post('/verify-otp', AuthController.verifyOtp);
+router.post('/reset-password', AuthController.resetPassword);
 
 // ── Two-Factor Authentication 
 const TwoFactorController = require('../controllers/twoFactorController');

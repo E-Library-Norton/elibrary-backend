@@ -3,7 +3,6 @@
 // ============================================
 
 const rateLimit = require("express-rate-limit");
-const { ipKeyGenerator } = rateLimit;
 
 // General API rate limiter
 const apiLimiter = rateLimit({
@@ -58,43 +57,6 @@ const loginLimiter = rateLimit({
   },
 });
 
-// Password-reset requests must count successful responses as well. The generic
-// endpoint intentionally returns 200 for known and unknown email addresses.
-const passwordResetRequestLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  skipSuccessfulRequests: false,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req.ip || req.socket.remoteAddress || '');
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    return `${ip}:${email}`;
-  },
-  message: {
-    success: false,
-    error: {
-      code: "PASSWORD_RESET_LIMIT_EXCEEDED",
-      message: "Too many password reset requests. Please wait 15 minutes and try again.",
-    },
-  },
-});
-
-const passwordResetActionLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  skipSuccessfulRequests: false,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: "PASSWORD_RESET_ATTEMPTS_EXCEEDED",
-      message: "Too many verification attempts. Please wait 15 minutes and try again.",
-    },
-  },
-});
-
 // Upload rate limiter
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -112,7 +74,5 @@ module.exports = {
   apiLimiter,
   authLimiter,
   loginLimiter,
-  passwordResetRequestLimiter,
-  passwordResetActionLimiter,
   uploadLimiter,
 };

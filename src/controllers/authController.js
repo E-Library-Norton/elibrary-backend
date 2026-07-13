@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { Op } = require('sequelize');
-const { User, Role } = require('../models');
+const { sequelize, User, Role, PasswordResetChallenge } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 const { ValidationError, AuthenticationError, NotFoundError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLogger');
@@ -9,6 +10,39 @@ const { sendOtpEmail } = require('../utils/emailService');
 const r2 = require('../config/r2');
 const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
+
+function getPasswordResetSecret() {
+  const secret = process.env.FORGOT_PASSWORD_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('FORGOT_PASSWORD_SECRET must contain at least 32 characters');
+  }
+  return secret;
+}
+
+function hashChallengeToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function hashOtp(token, otp) {
+  return crypto
+    .createHmac('sha256', getPasswordResetSecret())
+    .update(`${token}:${otp}`)
+    .digest('hex');
+}
+
+function otpMatches(expectedHash, token, otp) {
+  const actual = Buffer.from(hashOtp(token, otp), 'hex');
+  const expected = Buffer.from(expectedHash, 'hex');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+function invalidResetCodeError() {
+  return new AuthenticationError('Code is invalid or expired. Please request a new one');
+}
 
 class AuthController {
 
@@ -242,10 +276,10 @@ class AuthController {
   }
 
   // POST /api/auth/forgot-password
-  // Step 1: generate 6-digit OTP, embed in signed JWT (sessionToken), send OTP to email.
+  // Step 1: create an opaque challenge and email a separately stored, hashed OTP.
   static async forgotPassword(req, res, next) {
     try {
-      const { email } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
       if (!email) throw new ValidationError('Email is required');
 
       const user = await User.scope(null).findOne({
@@ -253,25 +287,39 @@ class AuthController {
         attributes: ['id', 'email', 'firstName', 'password'],
       });
 
-      // Always return 200 — prevents email enumeration
-      if (!user) {
-        return ResponseFormatter.success(res, { sessionToken: null }, 'If that email is registered, a code has been sent');
+      // Always return the same-shaped opaque token, even for an unknown email.
+      // The token contains no user ID or OTP and cannot be decoded for account data.
+      const sessionToken = crypto.randomBytes(32).toString('base64url');
+
+      if (user) {
+        const otp = String(crypto.randomInt(100000, 1000000));
+        const tokenHash = hashChallengeToken(sessionToken);
+
+        await PasswordResetChallenge.upsert({
+          userId: user.id,
+          tokenHash,
+          otpHash: hashOtp(sessionToken, otp),
+          attempts: 0,
+          expiresAt: new Date(Date.now() + OTP_TTL_MS),
+          verifiedAt: null,
+          usedAt: null,
+        });
+
+        // Do not reveal SMTP failures or account existence through the response.
+        // Railway is a persistent process, so delivery can finish after the 200 response.
+        sendOtpEmail(user.email, otp, user.firstName).catch(async (err) => {
+          console.error(`[Password reset email] ${err.code || 'DELIVERY_FAILED'}: ${err.message}`);
+          await PasswordResetChallenge.destroy({ where: { tokenHash } }).catch((cleanupErr) => {
+            console.error(`[Password reset cleanup] ${cleanupErr.message}`);
+          });
+        });
       }
 
-      // 6-digit OTP
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
-
-      // Store OTP inside a JWT signed with SECRET+password_hash (auto-invalidates after password change)
-      const sessionToken = jwt.sign(
-        { id: user.id, otp },
-        process.env.FORGOT_PASSWORD_SECRET + user.password,
-        { expiresIn: '10m' }
+      return ResponseFormatter.success(
+        res,
+        { sessionToken },
+        'If that email is registered, a code has been sent'
       );
-
-      await sendOtpEmail(user.email, otp, user.firstName);
-
-      // Return sessionToken to frontend so it can send it back during OTP verification
-      return ResponseFormatter.success(res, { sessionToken }, 'A 6-digit code has been sent to your email');
     } catch (err) { next(err); }
   }
 
@@ -281,34 +329,63 @@ class AuthController {
     try {
       const { sessionToken, otp } = req.body;
       if (!sessionToken) throw new ValidationError('Session token is required');
-      if (!otp) throw new ValidationError('Code is required');
+      if (!/^\d{6}$/.test(String(otp || ''))) throw new ValidationError('A valid 6-digit code is required');
 
-      // Decode (unverified) to get user ID
-      const decoded = jwt.decode(sessionToken);
-      if (!decoded?.id) throw new AuthenticationError('Invalid session. Please request a new code');
+      const tokenHash = hashChallengeToken(String(sessionToken));
+      const verification = await sequelize.transaction(async (transaction) => {
+        const challenge = await PasswordResetChallenge.findOne({
+          where: { tokenHash },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
 
-      const user = await User.scope(null).findOne({
-        where: { id: decoded.id, isDeleted: false },
-        attributes: ['id', 'password'],
+        const now = new Date();
+        if (!challenge || challenge.usedAt || challenge.verifiedAt || challenge.expiresAt <= now) {
+          return { ok: false };
+        }
+
+        if (challenge.attempts >= MAX_OTP_ATTEMPTS) {
+          await challenge.update({ usedAt: now }, { transaction });
+          return { ok: false };
+        }
+
+        const attempts = challenge.attempts + 1;
+        if (!otpMatches(challenge.otpHash, String(sessionToken), String(otp))) {
+          await challenge.update({
+            attempts,
+            usedAt: attempts >= MAX_OTP_ATTEMPTS ? now : null,
+          }, { transaction });
+          return { ok: false };
+        }
+
+        const user = await User.scope(null).findOne({
+          where: { id: challenge.userId, isDeleted: false },
+          attributes: ['id'],
+          transaction,
+        });
+        if (!user) {
+          await challenge.update({ usedAt: now }, { transaction });
+          return { ok: false };
+        }
+
+        await challenge.update({
+          attempts,
+          verifiedAt: now,
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        }, { transaction });
+
+        return { ok: true, userId: user.id, challengeId: challenge.id };
       });
-      if (!user) throw new NotFoundError('User not found');
 
-      // Verify signature + expiry
-      let payload;
-      try {
-        payload = jwt.verify(sessionToken, process.env.FORGOT_PASSWORD_SECRET + user.password);
-      } catch {
-        throw new AuthenticationError('Code has expired or is invalid. Please request a new one');
-      }
+      if (!verification.ok) throw invalidResetCodeError();
 
-      if (String(payload.otp) !== String(otp)) {
-        throw new AuthenticationError('Incorrect code. Please try again');
-      }
-
-      // Issue a short-lived resetToken (15 min)
       const resetToken = jwt.sign(
-        { id: user.id },
-        process.env.FORGOT_PASSWORD_SECRET + user.password + '_reset',
+        {
+          sub: String(verification.userId),
+          challengeId: String(verification.challengeId),
+          purpose: 'password-reset',
+        },
+        getPasswordResetSecret(),
         { expiresIn: '15m' }
       );
 
@@ -326,22 +403,47 @@ class AuthController {
       if (password !== confirmPassword) throw new ValidationError('Passwords do not match');
       if (password.length < 8) throw new ValidationError('Password must be at least 8 characters');
 
-      const decoded = jwt.decode(resetToken);
-      if (!decoded?.id) throw new AuthenticationError('Invalid reset token');
-
-      const user = await User.scope(null).findOne({
-        where: { id: decoded.id, isDeleted: false },
-        attributes: ['id', 'password'],
-      });
-      if (!user) throw new NotFoundError('User not found');
-
+      let payload;
       try {
-        jwt.verify(resetToken, process.env.FORGOT_PASSWORD_SECRET + user.password + '_reset');
+        payload = jwt.verify(resetToken, getPasswordResetSecret());
       } catch {
         throw new AuthenticationError('Reset session expired. Please start over');
       }
 
-      await user.update({ password });
+      if (payload.purpose !== 'password-reset' || !payload.sub || !payload.challengeId) {
+        throw new AuthenticationError('Invalid reset token');
+      }
+
+      const reset = await sequelize.transaction(async (transaction) => {
+        const challenge = await PasswordResetChallenge.findByPk(payload.challengeId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        const now = new Date();
+
+        if (
+          !challenge ||
+          String(challenge.userId) !== String(payload.sub) ||
+          !challenge.verifiedAt ||
+          challenge.usedAt ||
+          challenge.expiresAt <= now
+        ) {
+          return false;
+        }
+
+        const user = await User.scope(null).findOne({
+          where: { id: payload.sub, isDeleted: false },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!user) return false;
+
+        await user.update({ password }, { transaction });
+        await challenge.update({ usedAt: now }, { transaction });
+        return true;
+      });
+
+      if (!reset) throw new AuthenticationError('Reset session expired. Please start over');
 
       return ResponseFormatter.success(res, null, 'Password reset successfully. You can now sign in.');
     } catch (err) { next(err); }

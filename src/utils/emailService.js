@@ -1,19 +1,41 @@
 const nodemailer = require('nodemailer');
+const dns = require('node:dns').promises;
+const net = require('node:net');
 
-function createTransporter() {
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+async function createTransporter() {
   const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const port = Number(process.env.EMAIL_PORT || 465);
   const secure = String(process.env.EMAIL_SECURE || 'true').toLowerCase() === 'true';
+  let connectionHost = host;
+
+  // Nodemailer 9 resolves A and AAAA records itself and may randomly select
+  // IPv6 even when `family: 4` is passed. Railway IPv6 is opt-in, so resolve
+  // the A record explicitly while retaining the hostname for TLS/SNI.
+  if (!net.isIP(host)) {
+    const addresses = await dns.resolve4(host);
+    if (!addresses.length) throw new Error(`No IPv4 address found for ${host}`);
+    connectionHost = addresses[0];
+  }
 
   return nodemailer.createTransport({
-    host,
+    host: connectionHost,
     port,
     secure,
-    family: 4,
+    requireTLS: !secure,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    tls: net.isIP(host) ? undefined : { servername: host },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
@@ -24,12 +46,14 @@ function createTransporter() {
  * Send a 6-digit OTP code to the user's email for password reset.
  */
 async function sendOtpEmail(to, otp, firstName = 'Student') {
-  const name = firstName || 'Student';
+  const plainName = firstName || 'Student';
+  const name = escapeHtml(plainName);
+  const transporter = await createTransporter();
 
-  await createTransporter().sendMail({
+  await transporter.sendMail({
     from: `"E-Library NU" <${process.env.EMAIL_USER}>`,
     to,
-    subject: `${otp} — Your E-Library NU password reset code`,
+    subject: 'Your E-Library NU password reset code',
     html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -70,7 +94,7 @@ async function sendOtpEmail(to, otp, firstName = 'Student') {
               <!-- Expiry notice -->
               <div style="background:#FFF8EC;border:1px solid #F5D98B;border-radius:8px;padding:12px 20px;margin-bottom:24px;">
                 <p style="margin:0;font-size:13px;color:#92620A;">
-                  ⏰ This code expires in <strong>2 hours</strong>. Do not share it with anyone.
+                  ⏰ This code expires in <strong>10 minutes</strong>. Do not share it with anyone.
                 </p>
               </div>
 
@@ -96,7 +120,7 @@ async function sendOtpEmail(to, otp, firstName = 'Student') {
 </body>
 </html>
     `,
-    text: `Hi ${name},\n\nYour E-Library NU password reset code is: ${otp}\n\nIt expires in 2 hours. Do not share it.\n\nIf you did not request this, ignore this email.`,
+    text: `Hi ${plainName},\n\nYour E-Library NU password reset code is: ${otp}\n\nIt expires in 10 minutes. Do not share it.\n\nIf you did not request this, ignore this email.`,
   });
 }
 
@@ -107,9 +131,12 @@ async function sendOtpEmail(to, otp, firstName = 'Student') {
  * @param {string} firstName  - user's first name (for personalisation)
  */
 async function sendPasswordResetEmail(to, resetLink, firstName = 'Student') {
-  const name = firstName || 'Student';
+  const plainName = firstName || 'Student';
+  const name = escapeHtml(plainName);
+  const safeResetLink = escapeHtml(resetLink);
+  const transporter = await createTransporter();
 
-  await createTransporter().sendMail({
+  await transporter.sendMail({
     from: `"E-Library NU" <${process.env.EMAIL_USER}>`,
     to,
     subject: 'Reset your E-Library NU password',
@@ -152,7 +179,7 @@ async function sendPasswordResetEmail(to, resetLink, firstName = 'Student') {
 
               <!-- CTA button -->
               <div style="text-align:center;margin:32px 0;">
-                <a href="${resetLink}"
+                <a href="${safeResetLink}"
                    style="display:inline-block;background:#20659C;color:#ffffff;font-size:15px;font-weight:700;
                           text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.2px;">
                   Reset Password
@@ -162,7 +189,7 @@ async function sendPasswordResetEmail(to, resetLink, firstName = 'Student') {
               <!-- Fallback link -->
               <p style="font-size:13px;color:#9CA3AF;margin:0 0 8px;">Or copy and paste this link in your browser:</p>
               <p style="font-size:12px;color:#20659C;word-break:break-all;margin:0 0 28px;">
-                <a href="${resetLink}" style="color:#20659C;">${resetLink}</a>
+                <a href="${safeResetLink}" style="color:#20659C;">${safeResetLink}</a>
               </p>
 
               <!-- Expiry notice -->
@@ -195,7 +222,7 @@ async function sendPasswordResetEmail(to, resetLink, firstName = 'Student') {
 </body>
 </html>
     `,
-    text: `Hi ${name},\n\nReset your E-Library NU password by visiting:\n${resetLink}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`,
+    text: `Hi ${plainName},\n\nReset your E-Library NU password by visiting:\n${resetLink}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`,
   });
 }
 

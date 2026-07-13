@@ -19,6 +19,7 @@ const Activity = require('./Activity');
 const Review = require('./Review');
 const PushSubscription = require('./PushSubscription');
 const Feedback = require('./Feedback');
+const PasswordResetChallenge = require('./PasswordResetChallenge');
 
 // ── Junction table models (all timestamps: false — these tables have NO created_at) ──
 const UsersRoles = sequelize.define('UsersRoles', {
@@ -116,11 +117,15 @@ Feedback.belongsTo(User, { foreignKey: 'user_id', as: 'User', onDelete: 'SET NUL
 Feedback.belongsTo(User, { foreignKey: 'resolved_by', as: 'Resolver', onDelete: 'SET NULL' });
 User.hasMany(Feedback, { foreignKey: 'user_id', as: 'Feedbacks' });
 
+// Password reset challenges
+PasswordResetChallenge.belongsTo(User, { foreignKey: 'userId', as: 'User', onDelete: 'CASCADE' });
+User.hasOne(PasswordResetChallenge, { foreignKey: 'userId', as: 'PasswordResetChallenge', onDelete: 'CASCADE' });
+
 // ── Exports 
 module.exports = {
   sequelize,
   User, Role, Permission, Setting, Activity,
   Book, Author, Editor, Category, Publisher, MaterialType, Department, Download,
-  Review, PushSubscription, Feedback,
+  Review, PushSubscription, Feedback, PasswordResetChallenge,
   BookAuthor, BookEditor, PublishersBooks,
 };

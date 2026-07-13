@@ -76,7 +76,12 @@ if [[ ! -f "$BACKUP_FILE" ]]; then
 fi
 
 # ── Confirmation ─────────────────────────────────────────────────────────────
-log "${YELLOW}⚠ WARNING: This will OVERWRITE the database '${DB_NAME}'!${NC}"
+if [[ "$MODE" == "url" ]]; then
+  TARGET_LABEL="remote database (credentials hidden)"
+else
+  TARGET_LABEL="database '${DB_NAME}'"
+fi
+log "${YELLOW}⚠ WARNING: This will OVERWRITE the ${TARGET_LABEL}!${NC}"
 log "Backup file: ${BACKUP_FILE}"
 read -rp "$(echo -e "${YELLOW}Are you sure? (yes/no): ${NC}")" CONFIRM
 if [[ "$CONFIRM" != "yes" ]]; then

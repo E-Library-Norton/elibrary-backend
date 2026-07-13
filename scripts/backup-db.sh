@@ -123,7 +123,7 @@ case "$MODE" in
 
   url)
     # Dump from a remote DATABASE_URL (e.g. Render managed DB)
-    log "URL: ${YELLOW}${DATABASE_URL_ARG%%@*}@...${NC}"
+    log "URL: ${YELLOW}remote database (credentials hidden)${NC}"
     PGPASSWORD="" pg_dump "$DATABASE_URL_ARG" \
       --no-owner --no-privileges --clean --if-exists \
     | gzip > "$BACKUP_FILE"

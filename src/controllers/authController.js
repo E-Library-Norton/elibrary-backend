@@ -242,10 +242,30 @@ class AuthController {
   }
 
   // POST /api/auth/forgot-password
+  // Checks whether an active account exists before enabling the reset-code button.
+  static async checkPasswordResetEmail(req, res, next) {
+    try {
+      const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+      if (!email) throw new ValidationError('Email is required');
+
+      const user = await User.scope(null).findOne({
+        where: { email, isDeleted: false },
+        attributes: ['id'],
+      });
+
+      return ResponseFormatter.success(
+        res,
+        { exists: Boolean(user) },
+        user ? 'Email is registered' : 'This email is not registered'
+      );
+    } catch (err) { next(err); }
+  }
+
+  // POST /api/auth/forgot-password
   // Step 1: generate 6-digit OTP, embed in signed JWT (sessionToken), send OTP to email.
   static async forgotPassword(req, res, next) {
     try {
-      const { email } = req.body;
+      const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
       if (!email) throw new ValidationError('Email is required');
 
       const user = await User.scope(null).findOne({
@@ -253,9 +273,8 @@ class AuthController {
         attributes: ['id', 'email', 'firstName', 'password'],
       });
 
-      // Always return 200 — prevents email enumeration
       if (!user) {
-        return ResponseFormatter.success(res, { sessionToken: null }, 'If that email is registered, a code has been sent');
+        throw new NotFoundError('This email is not registered.');
       }
 
       // 6-digit OTP

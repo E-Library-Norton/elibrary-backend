@@ -31,6 +31,7 @@ router.get('/avatar', authenticate, AuthController.getAvatar);
 router.patch('/profile', authenticate, AuthController.updateProfile);
 router.post('/avatar', authenticate, avatarUpload, AuthController.uploadAvatar);
 router.put('/change-password', authenticate, AuthController.changePassword);
+router.post('/check-reset-email', authLimiter, AuthController.checkPasswordResetEmail);
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
 router.post('/verify-otp', AuthController.verifyOtp);
 router.post('/reset-password', AuthController.resetPassword);

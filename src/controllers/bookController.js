@@ -318,6 +318,10 @@ class BookController {
       } = req.body;
 
       if (!title) throw new ValidationError('Title is required');
+      if (!categoryId) throw new ValidationError('Category is required');
+
+      const category = await Category.findByPk(categoryId, { attributes: ['id'] });
+      if (!category) throw new ValidationError('Selected category does not exist');
 
       // Check ISBN uniqueness
       if (isbn) {
@@ -478,6 +482,12 @@ class BookController {
       if (isbn && isbn !== book.isbn) {
         const exists = await Book.findOne({ where: { isbn, id: { [Op.ne]: book.id } } });
         if (exists) throw new ConflictError(`ISBN '${isbn}' already exists`);
+      }
+
+      if (categoryId !== undefined) {
+        if (!categoryId) throw new ValidationError('Category is required');
+        const category = await Category.findByPk(categoryId, { attributes: ['id'] });
+        if (!category) throw new ValidationError('Selected category does not exist');
       }
 
       // authorIds may arrive as a JSON string when sent via FormData

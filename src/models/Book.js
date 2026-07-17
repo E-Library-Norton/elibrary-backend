@@ -86,6 +86,7 @@ const Book = sequelize.define(
     categoryId: {
       type: DataTypes.INTEGER,
       field: 'category_id',
+      allowNull: false,
     },
     departmentId: {
       type: DataTypes.INTEGER,

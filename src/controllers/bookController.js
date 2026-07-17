@@ -8,6 +8,35 @@ const { uploadToR2 } = require('../utils/cloudR2Upload');
 const { scanBookCover, syncBookCover, deleteBookCover } = require('../utils/vectorSearchService');
 const { EVENTS, emitToAdmin, emitBroadcast } = require('../utils/socket');
 const { broadcastNotification } = require('../utils/pushNotification');
+const { MAX_ADDITIONAL_PDFS } = require('../config/constants');
+
+function parseAdditionalPdfUrls(value, { optional = false } = {}) {
+  if (value === undefined && optional) return undefined;
+  if (value === null || value === '') return null;
+
+  let parsed = value;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      throw new ValidationError('pdfUrls must be a JSON array of URLs');
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new ValidationError('pdfUrls must be an array');
+  }
+  if (parsed.length > MAX_ADDITIONAL_PDFS) {
+    throw new ValidationError(`A book can have up to ${MAX_ADDITIONAL_PDFS} additional PDFs`);
+  }
+
+  return parsed.map((url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
+      throw new ValidationError('Every additional PDF must be a valid HTTP(S) URL');
+    }
+    return url.trim();
+  });
+}
 
 // ── Shared include for full book detail 
 const BOOK_INCLUDE = [
@@ -308,11 +337,7 @@ class BookController {
       const videoUrl = req.body.videoUrl ?? null;
       const audioUrl = req.body.audioUrl ?? null;
       // pdfUrls: optional array of additional PDF URLs
-      let pdfUrls = req.body.pdfUrls ?? null;
-      if (typeof pdfUrls === 'string') {
-        try { pdfUrls = JSON.parse(pdfUrls); } catch { pdfUrls = null; }
-      }
-      if (!Array.isArray(pdfUrls)) pdfUrls = null;
+      const pdfUrls = parseAdditionalPdfUrls(req.body.pdfUrls ?? null);
 
       const book = await Book.create({
         title, titleKh, isbn, publicationYear, description,
@@ -467,11 +492,7 @@ class BookController {
       const videoUrl = req.body.videoUrl;
       const audioUrl = req.body.audioUrl;
       // pdfUrls: optional array of additional PDF URLs
-      let pdfUrls = req.body.pdfUrls;
-      if (typeof pdfUrls === 'string') {
-        try { pdfUrls = JSON.parse(pdfUrls); } catch { pdfUrls = undefined; }
-      }
-      if (pdfUrls !== undefined && !Array.isArray(pdfUrls)) pdfUrls = undefined;
+      const pdfUrls = parseAdditionalPdfUrls(req.body.pdfUrls, { optional: true });
 
       await book.update({
         ...(title !== undefined && { title }),

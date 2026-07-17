@@ -6,8 +6,8 @@ require("dotenv").config({ path: ['.env.local', '.env'] });
 const useSSL = (process.env.DB_SSL ?? 'true').toLowerCase() !== 'false';
 
 if (!process.env.DATABASE_URL) {
-  console.error("❌ Error: DATABASE_URL environment variable is not defined!");
-  console.error("👉 Please ensure DATABASE_URL is configured in your production environment variables (e.g. Render Dashboard) or in your local config (.env.local / .env).");
+  console.error(" Error: DATABASE_URL environment variable is not defined!");
+  console.error(" Please ensure DATABASE_URL is configured in your production environment variables (e.g. Render Dashboard) or in your local config (.env.local / .env).");
   process.exit(1);
 }
 

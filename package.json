@@ -1,19 +1,19 @@
 {
-  "name": "backend",
+  "name": "elibrary-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "E-Library Backend API",
   "keywords": [
     "library",
     "api",
     "express"
   ],
-  "homepage": "https://github.com/E-Library-Norton/user-backend#readme",
+  "homepage": "https://github.com/E-Library-Norton/elibrary-backend#readme",
   "bugs": {
-    "url": "https://github.com/E-Library-Norton/user-backend/issues"
+    "url": "https://github.com/E-Library-Norton/elibrary-backend/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/E-Library-Norton/user-backend.git"
+    "url": "git+https://github.com/E-Library-Norton/elibrary-backend.git"
   },
   "license": "ISC",
   "author": "Samnang",

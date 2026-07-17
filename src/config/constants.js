@@ -18,8 +18,6 @@ module.exports = {
     AUDIO: 100 * 1024 * 1024, // 100MB
   },
 
-  MAX_ADDITIONAL_PDFS: 4,
-
   PAGINATION: {
     DEFAULT_PAGE: 1,
     DEFAULT_LIMIT: 10,

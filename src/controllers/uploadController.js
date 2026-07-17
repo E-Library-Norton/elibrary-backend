@@ -4,7 +4,6 @@ const r2 = require('../config/r2');
 const ResponseFormatter = require('../utils/responseFormatter');
 const Helpers = require('../utils/helpers');
 const { uploadToR2, deleteFromR2, extractKeyFromUrl } = require('../utils/cloudR2Upload');
-const { MAX_ADDITIONAL_PDFS } = require('../config/constants');
 
 const BUCKET = process.env.R2_BUCKET;
 
@@ -19,7 +18,6 @@ const URL_KEY_MAP = {
 const FOLDER_MAP = {
   cover: 'books/covers',
   pdf: 'books/pdfs',
-  pdfs: 'books/pdfs',
   avatar: 'users/avatars',
   video: 'media/videos',
   audio: 'media/audios',
@@ -83,22 +81,11 @@ class UploadController {
     } catch (err) { next(err); }
   }
 
-  // POST /api/uploads/multiple
-  // fields: "cover" (1), "pdf" (1), "pdfs" (up to 4 supplementary PDFs)
+  // POST /api/uploads/multiple — fields: "cover" (1), "pdf" (1)
   static async uploadMultiple(req, res, next) {
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
         return ResponseFormatter.error(res, 'No files uploaded', 400, 'FILES_REQUIRED');
-      }
-
-      const supplementaryPdfs = req.files.pdfs ?? [];
-      if (supplementaryPdfs.length > MAX_ADDITIONAL_PDFS) {
-        return ResponseFormatter.error(
-          res,
-          `You can upload up to ${MAX_ADDITIONAL_PDFS} additional PDFs`,
-          400,
-          'TOO_MANY_PDFS'
-        );
       }
 
       const entries = Object.entries(req.files).flatMap(([field, files]) =>
@@ -119,24 +106,18 @@ class UploadController {
       );
 
       const uploadedFiles = {};
-      const uploadedPdfs = [];
-
       for (const { field, file, result } of results) {
         const info = {
-          ...(field !== 'pdfs' && { [URL_KEY_MAP[field] || 'url']: result.secure_url }),
+          [URL_KEY_MAP[field] || 'url']: result.secure_url,
           ...buildFileInfo(file, result),
         };
 
-        if (field === 'pdfs') uploadedPdfs.push(info);
-        else uploadedFiles[field] = info;
+        uploadedFiles[field] = info;
       }
-
-      if (uploadedPdfs.length) uploadedFiles.pdfs = uploadedPdfs;
 
       const topLevel = {};
       if (uploadedFiles.cover) topLevel.cover_url = uploadedFiles.cover.cover_url;
       if (uploadedFiles.pdf) topLevel.pdf_url = uploadedFiles.pdf.pdf_url;
-      if (uploadedPdfs.length) topLevel.pdf_urls = uploadedPdfs.map((file) => file.secure_url);
 
       return ResponseFormatter.success(res, { ...topLevel, files: uploadedFiles }, 'Files uploaded successfully', 201);
     } catch (err) { next(err); }

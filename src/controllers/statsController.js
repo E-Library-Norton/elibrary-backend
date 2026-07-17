@@ -16,7 +16,7 @@ const ResponseFormatter = require("../utils/responseFormatter");
 // ── In-memory cache for overview stats (TTL = 60s) 
 let _overviewCache = null;
 let _overviewCacheTime = 0;
-const OVERVIEW_CACHE_TTL = 60_000; // 60 seconds
+const OVERVIEW_CACHE_TTL = 300_000; // 5 minutes
 
 class StatsController {
     static async getOverview(req, res, next) {
@@ -31,8 +31,7 @@ class StatsController {
             }
 
             // 1. Basic counts — run in parallel
-            const [totalBooks, totalMembers, totalActiveMembers, totalAuthors, totalCategories, totalDownloads] =
-                await Promise.all([
+            const basicCountsPromise = Promise.all([
                     Book.count({ where: { isDeleted: false } }).catch(err => { console.error("Error counting books:", err); return 0; }),
                     User.count({ where: { isDeleted: false } }).catch(err => { console.error("Error counting users:", err); return 0; }),
                     User.count({ where: { isActive: true, isDeleted: false } }).catch(err => { console.error("Error counting active users:", err); return 0; }),
@@ -100,7 +99,11 @@ class StatsController {
                 Book.findAll({
                     where: {
                         isDeleted: false,
-                        createdAt: { [Op.gte]: new Date(`${startYear}-01-01`) },
+                        [Op.and]: [
+                            sequelize.where(col('Book.created_at'), {
+                                [Op.gte]: new Date(`${startYear}-01-01`),
+                            }),
+                        ],
                     },
                     attributes: [
                         [fn('EXTRACT', literal("YEAR FROM \"created_at\"")), 'year'],
@@ -148,6 +151,7 @@ class StatsController {
                     where: activityWhere,
                     attributes: [
                         'action',
+                        [col('User->Roles.name'), 'roleName'],
                         [fn('COUNT', col('Activity.id')), 'count'],
                     ],
                     include: [{
@@ -158,14 +162,13 @@ class StatsController {
                         include: [{
                             model: Role,
                             as: 'Roles',
-                            attributes: ['name'],
+                            attributes: [],
                             required: true,
                             through: { attributes: [] },
                         }],
                     }],
                     group: ['User->Roles.name', 'Activity.action'],
                     raw: true,
-                    nest: true,
                 }).catch(err => { console.error("Error in query 6:", err); return []; }),
 
                 // 7. Monthly New Books
@@ -240,6 +243,15 @@ class StatsController {
                     raw: true,
                 }).catch(err => { console.error("Error in query 15:", err); return []; }),
             ]);
+
+            const [
+                totalBooks,
+                totalMembers,
+                totalActiveMembers,
+                totalAuthors,
+                totalCategories,
+                totalDownloads,
+            ] = await basicCountsPromise;
 
             // ── Process results (pure JS, no DB) ──────
 
@@ -364,10 +376,7 @@ class StatsController {
             // 8. Role activity stats
             const roleMap = {};
             for (const row of roleRows) {
-                const roleName = row.User?.Roles?.name ||
-                    row['User.Roles.name'] ||
-                    row.User?.Roles?.[0]?.name ||
-                    'Unknown';
+                const roleName = row.roleName || 'Unknown';
 
                 if (!roleMap[roleName]) roleMap[roleName] = { create_count: 0, update_count: 0, delete_count: 0 };
                 const cnt = parseInt(row.count) || 0;

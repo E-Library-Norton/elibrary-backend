@@ -84,10 +84,12 @@ const Book = sequelize.define(
     departmentId: {
       type: DataTypes.INTEGER,
       field: 'department_id',
+      allowNull: false,
     },
     typeId: {
       type: DataTypes.INTEGER,
       field: 'type_id',
+      allowNull: false,
     },
     isActive: {
       type: DataTypes.BOOLEAN,

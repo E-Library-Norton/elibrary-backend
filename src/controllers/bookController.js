@@ -9,6 +9,35 @@ const { scanBookCover, syncBookCover, deleteBookCover } = require('../utils/vect
 const { EVENTS, emitToAdmin, emitBroadcast } = require('../utils/socket');
 const { broadcastNotification } = require('../utils/pushNotification');
 
+async function validateBookClassifications(
+  { categoryId, departmentId, typeId },
+  { partial = false } = {}
+) {
+  const classifications = [
+    { label: 'Category', value: categoryId, model: Category },
+    { label: 'Department', value: departmentId, model: Department },
+    { label: 'Material type', value: typeId, model: MaterialType },
+  ];
+
+  for (const { label, value } of classifications) {
+    if (!partial && !value) throw new ValidationError(`${label} is required`);
+    if (partial && value !== undefined && !value) {
+      throw new ValidationError(`${label} is required`);
+    }
+  }
+
+  const supplied = classifications.filter(({ value }) => Boolean(value));
+  const records = await Promise.all(
+    supplied.map(({ model, value }) => model.findByPk(value, { attributes: ['id'] }))
+  );
+
+  records.forEach((record, index) => {
+    if (!record) {
+      throw new ValidationError(`Selected ${supplied[index].label.toLowerCase()} does not exist`);
+    }
+  });
+}
+
 // ── Shared include for full book detail 
 const BOOK_INCLUDE = [
   { model: Category, as: 'Category', attributes: ['id', 'name', 'nameKh'] },
@@ -287,10 +316,7 @@ class BookController {
       } = req.body;
 
       if (!title) throw new ValidationError('Title is required');
-      if (!categoryId) throw new ValidationError('Category is required');
-
-      const category = await Category.findByPk(categoryId, { attributes: ['id'] });
-      if (!category) throw new ValidationError('Selected category does not exist');
+      await validateBookClassifications({ categoryId, departmentId, typeId });
 
       // Check ISBN uniqueness
       if (isbn) {
@@ -450,11 +476,10 @@ class BookController {
         if (exists) throw new ConflictError(`ISBN '${isbn}' already exists`);
       }
 
-      if (categoryId !== undefined) {
-        if (!categoryId) throw new ValidationError('Category is required');
-        const category = await Category.findByPk(categoryId, { attributes: ['id'] });
-        if (!category) throw new ValidationError('Selected category does not exist');
-      }
+      await validateBookClassifications(
+        { categoryId, departmentId, typeId },
+        { partial: true }
+      );
 
       // authorIds may arrive as a JSON string when sent via FormData
       let parsedAuthorIds = authorIds;

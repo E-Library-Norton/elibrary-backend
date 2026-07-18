@@ -295,9 +295,15 @@ class ReviewController {
     try {
       const ratingRows = await Review.findAll({
         where: { isDeleted: false },
+        include: [{
+          model: User,
+          as: 'User',
+          attributes: [],
+          required: true,
+        }],
         attributes: [
           'rating',
-          [fn('COUNT', col('id')), 'count'],
+          [fn('COUNT', col('Review.id')), 'count'],
         ],
         group: ['rating'],
         raw: true,

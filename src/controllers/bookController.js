@@ -61,14 +61,16 @@ const BOOK_INCLUDE = [
   },
 ];
 
-// ── Rating subquery attributes (avoids N+1 for star ratings) 
+// ── Rating subquery attributes
+const REVIEW_COUNT_SQL = '(SELECT COUNT(*) FROM reviews r WHERE r.book_id = "Book".id AND r.is_deleted = false)';
+
 const RATING_ATTRIBUTES = [
   [
     literal('(SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.book_id = "Book".id AND r.is_deleted = false)'),
     'averageRating',
   ],
   [
-    literal('(SELECT COUNT(*) FROM reviews r WHERE r.book_id = "Book".id AND r.is_deleted = false)'),
+    literal(REVIEW_COUNT_SQL),
     'reviewCount',
   ],
 ];
@@ -165,9 +167,12 @@ class BookController {
       }
 
       // ── Sorting whitelist 
-      const ALLOWED_SORTS = ['created_at', 'title', 'views', 'downloads', 'publication_year', 'updated_at'];
+      const ALLOWED_SORTS = ['created_at', 'title', 'views', 'downloads', 'publication_year', 'updated_at', 'review_count'];
       const safeSort = ALLOWED_SORTS.includes(sortBy) ? sortBy : 'created_at';
       const safeOrder = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      const order = safeSort === 'review_count'
+        ? [[literal(REVIEW_COUNT_SQL), safeOrder], ['id', 'ASC']]
+        : [[safeSort, safeOrder], ['id', 'ASC']];
 
       // ── Query 1: total count (fast — no JOINs) 
       const total = await Book.count({ where });
@@ -183,7 +188,7 @@ class BookController {
             'audioUrl'
           ]
         },
-        order: [[safeSort, safeOrder]],
+        order,
         limit: limitNum,
         offset,
         subQuery: true,

@@ -16,7 +16,7 @@ const ResponseFormatter = require("../utils/responseFormatter");
 // ── In-memory cache for overview stats (TTL = 60s) 
 let _overviewCache = null;
 let _overviewCacheTime = 0;
-const OVERVIEW_CACHE_TTL = 300_000; // 5 minutes
+const OVERVIEW_CACHE_TTL = 60_000; // 60 seconds 
 
 class StatsController {
     static async getOverview(req, res, next) {

@@ -174,9 +174,8 @@ class ReviewController {
       const review = await Review.findOne({ where: { id, isDeleted: false } });
       if (!review) return ResponseFormatter.notFound(res, 'Review not found');
 
-      // Only the author OR admin/librarian may edit
-      const isAdmin = req.user.Roles?.some((r) => ['admin', 'librarian'].includes(r.name));
-      if (review.userId !== userId && !isAdmin) {
+      // Reviews represent the author's opinion and may only be edited by them.
+      if (review.userId !== userId) {
         throw new AuthorizationError('You can only edit your own reviews');
       }
 

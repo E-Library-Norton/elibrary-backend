@@ -640,7 +640,7 @@ class BookController {
       // Real-time: broadcast to admin + public (no duplication)
       emitBroadcast(EVENTS.BOOK_DELETED, { bookId: book.id });
 
-      return ResponseFormatter.noContent(res, null, 'Book deleted successfully');
+      return ResponseFormatter.success(res, null, 'Book deleted successfully');
     } catch (err) { next(err); }
   }
 

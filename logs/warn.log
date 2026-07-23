@@ -42,4 +42,3 @@
 {"timestamp":"2026-05-11T08:17:00.026Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}
 {"timestamp":"2026-05-11T08:17:10.942Z","level":"WARN","message":"fetch failed","bookId":"4651","status":null}
 {"timestamp":"2026-06-05T09:06:45.596Z","level":"WARN","message":"fetch failed","bookId":"7386","status":null}
-{"timestamp":"2026-06-05T09:12:27.463Z","level":"WARN","message":"fetch failed","bookId":"7386","status":null}

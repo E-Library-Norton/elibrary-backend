@@ -5,6 +5,13 @@
 const { body, param, query, validationResult } = require("express-validator");
 const ResponseFormatter = require("../utils/responseFormatter");
 
+const PASSWORD_PATTERN =
+  /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_])\S{8,20}$/;
+const PASSWORD_MESSAGE =
+  "Password must be 8-20 characters and include an uppercase letter, a lowercase letter, a number, and a special character";
+
+const strongPassword = (field) =>
+  body(field).matches(PASSWORD_PATTERN).withMessage(PASSWORD_MESSAGE);
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -19,17 +26,20 @@ const validate = (req, res, next) => {
 // User validation rules
 const userValidation = {
   register: [
-    body("username").trim().notEmpty().withMessage("Username is required"),
+    body("username")
+      .trim()
+      .toLowerCase()
+      .notEmpty()
+      .withMessage("Username is required")
+      .isLength({ max: 50 })
+      .withMessage("Username must not exceed 50 characters"),
     body("email")
       .isEmail()
       .normalizeEmail()
       .withMessage("Valid email is required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters"),
+    strongPassword("password"),
     body("firstName").trim().notEmpty().withMessage("First name is required"),
     body("lastName").trim().notEmpty().withMessage("Last name is required"),
-    body("studentId").optional().trim(),
 
     validate,
   ],
@@ -39,13 +49,63 @@ const userValidation = {
     body("password").notEmpty().withMessage("password is required"),
     validate,
   ],
+
+  updateProfile: [
+    body("firstName").optional().trim(),
+    body("lastName").optional().trim(),
+    body("email")
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage("Valid email is required")
+      .bail()
+      .normalizeEmail(),
+    body("studentId")
+      .optional({ values: "falsy" })
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage("Student ID must not exceed 50 characters"),
+    validate,
+  ],
+
+  changePassword: [
+    body("currentPassword")
+      .notEmpty()
+      .withMessage("Current password is required"),
+    strongPassword("newPassword"),
+    body("confirmPassword")
+      .custom((value, { req }) => value === req.body.newPassword)
+      .withMessage("New passwords do not match"),
+    validate,
+  ],
+
+  resetPassword: [
+    body("resetToken").notEmpty().withMessage("Reset token is required"),
+    strongPassword("password"),
+    body("confirmPassword")
+      .custom((value, { req }) => value === req.body.password)
+      .withMessage("Passwords do not match"),
+    validate,
+  ],
 };
 
 // User admin validation rules
 const userRules = {
   create: [
+    body("username")
+      .trim()
+      .toLowerCase()
+      .notEmpty()
+      .withMessage("username is required")
+      .isLength({ max: 50 })
+      .withMessage("username must not exceed 50 characters"),
     body("email").trim().isEmail().withMessage("valid email is required").normalizeEmail(),
-    body("password").isLength({ min: 8 }).withMessage("password must be at least 8 characters"),
+    strongPassword("password"),
+    body("studentId")
+      .optional({ values: "falsy" })
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage("studentId must not exceed 50 characters"),
     body("roleIds").optional().isArray().withMessage("roleIds must be an array"),
     validate,
   ],
@@ -54,7 +114,6 @@ const userRules = {
     param("id").isInt({ min: 1 }).withMessage("valid user id is required"),
     body("firstName").optional().trim(),
     body("lastName").optional().trim(),
-    body("studentId").optional().trim(),
     body("isActive").optional().isBoolean().withMessage("isActive must be boolean"),
     body("roleIds").optional().isArray().withMessage("roleIds must be an array"),
     validate,

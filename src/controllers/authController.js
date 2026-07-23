@@ -2,7 +2,12 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User, Role } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
-const { ValidationError, AuthenticationError, NotFoundError } = require('../utils/errors');
+const {
+  ValidationError,
+  AuthenticationError,
+  NotFoundError,
+  ConflictError,
+} = require('../utils/errors');
 const { logActivity } = require('../utils/activityLogger');
 const { uploadToR2, extractKeyFromUrl } = require('../utils/cloudR2Upload');
 const { sendOtpEmail } = require('../utils/emailService');
@@ -33,13 +38,29 @@ class AuthController {
   static async register(req, res, next) {
     try {
       const { username, email, password, firstName, lastName, studentId } = req.body;
+      const normalizedStudentId = studentId?.trim() || null;
+      const duplicateConditions = [
+        { username: { [Op.iLike]: username } },
+        { email: { [Op.iLike]: email } },
+      ];
+
+      if (normalizedStudentId) {
+        duplicateConditions.push({ studentId: normalizedStudentId });
+      }
 
       const existing = await User.findOne({
-        where: { [Op.or]: [{ username }, { email }, { studentId }] },
+        where: { [Op.or]: duplicateConditions },
       });
       if (existing) throw new ValidationError('Username, Email or Student ID already registered');
 
-      const user = await User.create({ username, email, password, firstName, lastName, studentId });
+      const user = await User.create({
+        username,
+        email,
+        password,
+        firstName,
+        lastName,
+        studentId: normalizedStudentId,
+      });
 
       const defaultRole = await Role.findOne({ where: { name: 'user' } });
       if (defaultRole) await user.addRole(defaultRole);
@@ -54,9 +75,16 @@ class AuthController {
   static async login(req, res, next) {
     try {
       const { identifier, password } = req.body;
+      const normalizedIdentifier = identifier.trim();
 
       const user = await User.findOne({
-        where: { [Op.or]: [{ username: identifier }, { email: identifier }, { studentId: identifier }] },
+        where: {
+          [Op.or]: [
+            { username: { [Op.iLike]: normalizedIdentifier } },
+            { email: { [Op.iLike]: normalizedIdentifier } },
+            { studentId: normalizedIdentifier },
+          ],
+        },
         include: { association: 'Roles' },
         attributes: { include: ['twoFactorSecret', 'faceDescriptor'] },
       });
@@ -65,7 +93,7 @@ class AuthController {
         throw new AuthenticationError('No account found with that username, email, or student ID');
       }
       if (!(await user.validatePassword(password))) {
-        throw new AuthenticationError('Incorrect password. Please try again');
+        throw new AuthenticationError('The provided credentials are incorrect');
       }
       if (!user.isActive) throw new AuthenticationError('Your account has been deactivated. Please contact an administrator');
 
@@ -166,7 +194,35 @@ class AuthController {
       const user = await User.findByPk(req.user.id);
       if (!user) throw new NotFoundError('User not found');
 
-      await user.update({ avatar, firstName, lastName, email, studentId });
+      const normalizedEmail = email ?? user.email;
+      const normalizedStudentId =
+        studentId === undefined ? user.studentId : studentId?.trim() || null;
+
+      const conflictingUser = await User.scope(null).findOne({
+        where: {
+          id: { [Op.ne]: user.id },
+          [Op.or]: [
+            { email: { [Op.iLike]: normalizedEmail } },
+            ...(normalizedStudentId ? [{ studentId: normalizedStudentId }] : []),
+          ],
+        },
+        attributes: ['email', 'studentId'],
+      });
+
+      if (conflictingUser) {
+        if (conflictingUser.email.toLowerCase() === normalizedEmail.toLowerCase()) {
+          throw new ConflictError('Email is already in use');
+        }
+        throw new ConflictError('Student ID is already in use');
+      }
+
+      await user.update({
+        avatar,
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        studentId: normalizedStudentId,
+      });
 
       return ResponseFormatter.success(res, {
         id: user.id, avatar: user.avatar, email: user.email,
@@ -222,13 +278,7 @@ class AuthController {
   // PUT /api/auth/change-password
   static async changePassword(req, res, next) {
     try {
-      const { currentPassword, newPassword, confirmPassword } = req.body;
-      if (!newPassword || newPassword.length < 8) {
-        throw new ValidationError('New password must be at least 8 characters');
-      }
-      if (newPassword !== confirmPassword) {
-        throw new ValidationError('New passwords do not match');
-      }
+      const { currentPassword, newPassword } = req.body;
 
       const user = await User.findByPk(req.user.id);
       if (!user) throw new NotFoundError('User not found');
@@ -339,11 +389,7 @@ class AuthController {
   // Step 3: set the new password using the resetToken from step 2.
   static async resetPassword(req, res, next) {
     try {
-      const { resetToken, password, confirmPassword } = req.body;
-      if (!resetToken) throw new ValidationError('Reset token is required');
-      if (!password) throw new ValidationError('New password is required');
-      if (password !== confirmPassword) throw new ValidationError('Passwords do not match');
-      if (password.length < 8) throw new ValidationError('Password must be at least 8 characters');
+      const { resetToken, password } = req.body;
 
       const decoded = jwt.decode(resetToken);
       if (!decoded?.id) throw new AuthenticationError('Invalid reset token');

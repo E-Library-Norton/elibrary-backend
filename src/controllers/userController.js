@@ -79,19 +79,33 @@ class UserController {
   static async create(req, res, next) {
     try {
       const { username, email, password, firstName, lastName, studentId, roleIds = [] } = req.body;
+      const normalizedStudentId = studentId?.trim() || null;
 
-      const takenUsername = await User.findOne({ where: { username } });
+      const takenUsername = await User.findOne({
+        where: { username: { [Op.iLike]: username } },
+      });
       if (takenUsername) throw new ConflictError("Username already taken");
 
-      if (studentId) {
-        const takenStudentId = await User.findOne({ where: { studentId } });
+      if (normalizedStudentId) {
+        const takenStudentId = await User.findOne({
+          where: { studentId: normalizedStudentId },
+        });
         if (takenStudentId) throw new ConflictError("Student ID already registered");
       }
 
-      const takenEmail = await User.findOne({ where: { email } });
+      const takenEmail = await User.findOne({
+        where: { email: { [Op.iLike]: email } },
+      });
       if (takenEmail) throw new ConflictError("Email already registered");
 
-      const user = await User.create({ username, email, password, firstName, lastName, studentId });
+      const user = await User.create({
+        username,
+        email,
+        password,
+        firstName,
+        lastName,
+        studentId: normalizedStudentId,
+      });
 
       if (roleIds.length > 0) {
         const roles = await Role.findAll({ where: { id: roleIds } });
@@ -130,12 +144,34 @@ class UserController {
       if (!user) throw new NotFoundError("User not found");
 
       const { avatar, firstName, lastName, studentId, email, isActive, roleIds } = req.body;
+      const normalizedEmail = email ?? user.email;
+      const normalizedStudentId =
+        studentId === undefined ? user.studentId : studentId?.trim() || null;
+
+      const conflictingUser = await User.scope(null).findOne({
+        where: {
+          id: { [Op.ne]: user.id },
+          [Op.or]: [
+            { email: { [Op.iLike]: normalizedEmail } },
+            ...(normalizedStudentId ? [{ studentId: normalizedStudentId }] : []),
+          ],
+        },
+        attributes: ["email", "studentId"],
+      });
+
+      if (conflictingUser) {
+        if (conflictingUser.email.toLowerCase() === normalizedEmail.toLowerCase()) {
+          throw new ConflictError("Email is already in use");
+        }
+        throw new ConflictError("Student ID is already in use");
+      }
+
       await user.update({
         avatar,
         firstName,
         lastName,
-        studentId: studentId === '' ? null : studentId,
-        email,
+        studentId: normalizedStudentId,
+        email: normalizedEmail,
         isActive,
       });
 

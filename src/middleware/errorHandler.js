@@ -21,7 +21,7 @@ const errorHandler = (err, req, res, next) => {
     return ResponseFormatter.error(
       res,
       "A record with this value already exists",
-      400,
+      409,
       "DUPLICATE_ENTRY"
     );
   }

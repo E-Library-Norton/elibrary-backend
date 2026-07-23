@@ -21,11 +21,17 @@ const User = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: false,
       unique: true,
+      set(value) {
+        this.setDataValue("username", value.trim().toLowerCase());
+      },
     },
     email: {
       type: DataTypes.STRING(256),
       allowNull: false,
       unique: true,
+      set(value) {
+        this.setDataValue("email", value.trim().toLowerCase());
+      },
     },
     password: {
       type: DataTypes.STRING(256),
@@ -157,12 +163,15 @@ User.prototype.hasPermission = async function (permissionName) {
 
 // Login can be done with email, username, or studentId
 User.findByLoginIdentifier = function (identifier) {
+  const normalizedIdentifier =
+    typeof identifier === "string" ? identifier.trim() : "";
+
   return this.findOne({
     where: {
       [Op.or]: [
-        { email: identifier },
-        { username: identifier },
-        { studentId: identifier },
+        { email: { [Op.iLike]: normalizedIdentifier } },
+        { username: { [Op.iLike]: normalizedIdentifier } },
+        { studentId: normalizedIdentifier },
       ],
     },
   });

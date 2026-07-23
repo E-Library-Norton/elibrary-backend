@@ -28,15 +28,13 @@ router.post('/logout', authenticate, AuthController.logout);
 router.get('/me', authenticate, AuthController.getProfile);
 router.get('/profile', authenticate, AuthController.getProfile);
 router.get('/avatar', authenticate, AuthController.getAvatar);
-router.patch('/profile', authenticate, AuthController.updateProfile);
+router.patch('/profile', authenticate, userValidation.updateProfile, AuthController.updateProfile);
 router.post('/avatar', authenticate, avatarUpload, AuthController.uploadAvatar);
-router.put('/change-password', authenticate, AuthController.changePassword);
+router.put('/change-password', authenticate, userValidation.changePassword, AuthController.changePassword);
 router.post('/check-reset-email', authLimiter, AuthController.checkPasswordResetEmail);
 router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
 router.post('/verify-otp', AuthController.verifyOtp);
-router.post('/reset-password', AuthController.resetPassword);
-router.post('/verify-otp', AuthController.verifyOtp);
-router.post('/reset-password', AuthController.resetPassword);
+router.post('/reset-password', userValidation.resetPassword, AuthController.resetPassword);
 
 // ── Two-Factor Authentication 
 const TwoFactorController = require('../controllers/twoFactorController');

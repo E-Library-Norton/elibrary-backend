@@ -75,7 +75,7 @@ const User = sequelize.define(
       defaultValue: false,
       field: "is_deleted",
     },
-    // ── 2FA fields ──────────────────────────────────────────────────────
+    // ── 2FA fields 
     twoFactorEnabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
@@ -113,7 +113,7 @@ const User = sequelize.define(
 
 User.beforeCreate(async (user) => {
   if (user.password) {
-    user.password = await bcrypt.hash(user.password, 10);
+    user.password = await bcrypt.hash(user.password, 12);
   }
 });
 

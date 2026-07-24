@@ -51,6 +51,9 @@ const userValidation = {
   ],
 
   updateProfile: [
+    body("username")
+      .custom((value) => value === undefined)
+      .withMessage("Username cannot be changed from your profile"),
     body("firstName").optional().trim(),
     body("lastName").optional().trim(),
     body("email")
@@ -112,6 +115,27 @@ const userRules = {
 
   update: [
     param("id").isInt({ min: 1 }).withMessage("valid user id is required"),
+    body("username")
+      .optional()
+      .trim()
+      .toLowerCase()
+      .notEmpty()
+      .withMessage("username is required")
+      .isLength({ min: 3, max: 50 })
+      .withMessage("username must be between 3 and 50 characters")
+      .matches(/^\S+$/)
+      .withMessage("username cannot contain spaces"),
+    body("email")
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage("valid email is required")
+      .normalizeEmail(),
+    body("studentId")
+      .optional({ values: "falsy" })
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage("studentId must not exceed 50 characters"),
     body("firstName").optional().trim(),
     body("lastName").optional().trim(),
     body("isActive").optional().isBoolean().withMessage("isActive must be boolean"),

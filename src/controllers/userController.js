@@ -84,19 +84,19 @@ class UserController {
       const takenUsername = await User.findOne({
         where: { username: { [Op.iLike]: username } },
       });
-      if (takenUsername) throw new ConflictError("Username already taken");
+      if (takenUsername) throw new ConflictError("Username is already in use");
 
       if (normalizedStudentId) {
         const takenStudentId = await User.findOne({
           where: { studentId: normalizedStudentId },
         });
-        if (takenStudentId) throw new ConflictError("Student ID already registered");
+        if (takenStudentId) throw new ConflictError("Student ID is already in use");
       }
 
       const takenEmail = await User.findOne({
         where: { email: { [Op.iLike]: email } },
       });
-      if (takenEmail) throw new ConflictError("Email already registered");
+      if (takenEmail) throw new ConflictError("Email is already in use");
 
       const user = await User.create({
         username,
@@ -143,7 +143,8 @@ class UserController {
       const user = await User.findByPk(req.params.id);
       if (!user) throw new NotFoundError("User not found");
 
-      const { avatar, firstName, lastName, studentId, email, isActive, roleIds } = req.body;
+      const { avatar, username, firstName, lastName, studentId, email, isActive, roleIds } = req.body;
+      const normalizedUsername = username ?? user.username;
       const normalizedEmail = email ?? user.email;
       const normalizedStudentId =
         studentId === undefined ? user.studentId : studentId?.trim() || null;
@@ -152,14 +153,18 @@ class UserController {
         where: {
           id: { [Op.ne]: user.id },
           [Op.or]: [
+            { username: { [Op.iLike]: normalizedUsername } },
             { email: { [Op.iLike]: normalizedEmail } },
             ...(normalizedStudentId ? [{ studentId: normalizedStudentId }] : []),
           ],
         },
-        attributes: ["email", "studentId"],
+        attributes: ["username", "email", "studentId"],
       });
 
       if (conflictingUser) {
+        if (conflictingUser.username.toLowerCase() === normalizedUsername.toLowerCase()) {
+          throw new ConflictError("Username is already in use");
+        }
         if (conflictingUser.email.toLowerCase() === normalizedEmail.toLowerCase()) {
           throw new ConflictError("Email is already in use");
         }
@@ -168,6 +173,7 @@ class UserController {
 
       await user.update({
         avatar,
+        username: normalizedUsername,
         firstName,
         lastName,
         studentId: normalizedStudentId,
@@ -197,7 +203,6 @@ class UserController {
       invalidateUserCache(user.id); // clear 30s auth cache so role/status change takes effect
       return ResponseFormatter.success(res, updated, "User updated successfully");
     } catch (err) {
-      console.log(err);
       next(err);
     }
   }

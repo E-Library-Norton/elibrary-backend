@@ -4,6 +4,9 @@ const ResponseFormatter = require("../utils/responseFormatter");
 const { NotFoundError, ConflictError } = require("../utils/errors");
 const { logActivity } = require("../utils/activityLogger");
 
+const isProtectedRole = (role) =>
+  role.name.trim().toLowerCase() === "admin";
+
 class RoleController {
 
   // ── GET /api/roles 
@@ -78,6 +81,14 @@ class RoleController {
 
       const { name, description } = req.body;
 
+      if (
+        isProtectedRole(role) &&
+        name &&
+        name.trim().toLowerCase() !== "admin"
+      ) {
+        throw new ConflictError("The Admin role name cannot be changed");
+      }
+
       if (name && name !== role.name) {
         const existing = await Role.findOne({ where: { name } });
         if (existing) throw new ConflictError(`Role name '${name}' is already taken`);
@@ -106,6 +117,9 @@ class RoleController {
     try {
       const role = await Role.findByPk(req.params.id);
       if (!role) throw new NotFoundError("Role not found");
+      if (isProtectedRole(role)) {
+        throw new ConflictError("The Admin role cannot be deleted");
+      }
 
       await role.destroy();
 
@@ -119,7 +133,7 @@ class RoleController {
         userAgent: req.get("user-agent"),
       });
 
-      return ResponseFormatter.noContent(res, null, "Role deleted successfully");
+      return ResponseFormatter.success(res, null, "Role deleted successfully");
     } catch (err) {
       next(err);
     }

@@ -52,10 +52,37 @@ function fetchWithRedirect(url, maxRedirects = 5, timeoutMs = 30_000) {
   });
 }
 
+function createPdfFilename(title) {
+  const baseName = String(title || 'document')
+    .replace(/\.pdf$/i, '')
+    .replace(/[<>:"/\\|?*\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 150) || 'document';
+
+  return `${baseName}.pdf`;
+}
+
+function encodeRFC5987Value(value) {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+function createContentDisposition(disposition, filename) {
+  const asciiFilename = filename
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .replace(/["\\]/g, '_');
+
+  return `${disposition}; filename="${asciiFilename}"; filename*=UTF-8''${encodeRFC5987Value(filename)}`;
+}
+
 /**
  * Stream a PDF from R2 (or any URL) to the Express response.
  */
-async function proxyPdf(pdfUrl, res, disposition) {
+async function proxyPdf(pdfUrl, res, disposition, title) {
   const fetchUrl = await signedUrl(pdfUrl);
 
   const upstream = await fetchWithRedirect(fetchUrl);
@@ -71,11 +98,14 @@ async function proxyPdf(pdfUrl, res, disposition) {
     return;
   }
 
-  const filename = disposition === 'inline' ? 'preview.pdf' : 'document.pdf';
-  const encodedName = encodeURIComponent(filename);
+  const filename =
+    disposition === 'inline' ? 'preview.pdf' : createPdfFilename(title);
 
   res.setHeader('Content-Type', upstream.headers['content-type'] || 'application/pdf');
-  res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodedName}`);
+  res.setHeader(
+    'Content-Disposition',
+    createContentDisposition(disposition, filename)
+  );
   res.setHeader('Cache-Control', 'private, max-age=3600');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -95,16 +125,15 @@ async function proxyPdf(pdfUrl, res, disposition) {
       } else {
         upstream.destroy();
         res.destroy();
-        resolve(); // client already received data, silently close
+        resolve(); // 
       }
     });
     res.on('error', (err) => {
       upstream.destroy();
       reject(err);
     });
-    res.on('finish', resolve); // fires when all data is flushed to the client
-
-    upstream.pipe(res); // start streaming — AFTER listeners are attached
+    res.on('finish', resolve); 
+    upstream.pipe(res); 
   });
 }
 
@@ -144,8 +173,6 @@ class DownloadController {
 
   /**
    * GET /api/books/:id/pdf-url
-   * Returns a short-lived presigned R2 URL.
-   * Frontend can open it in a new tab, <iframe>, or PDF.js — no proxy overhead.
    */
   static async getPdfUrl(req, res, next) {
     try {
@@ -177,8 +204,6 @@ class DownloadController {
 
   /**
    * GET /api/books/:id/stream?token=<jwt>
-   * Inline PDF preview. Token via ?token= OR Authorization header.
-   * Does NOT create a Download record.
    */
   static async streamPdf(req, res, next) {
     try {
@@ -216,7 +241,7 @@ class DownloadController {
 
       // FIX: Stream the PDF FIRST — DB operations must not block or break the download.
       // If Download.create() fails, the user still receives the file.
-      await proxyPdf(book.pdfUrl, res, 'attachment');
+      await proxyPdf(book.pdfUrl, res, 'attachment', book.title);
 
       // Fire-and-forget: record the download after streaming succeeds
       const ipAddress = req.ip || req.headers['x-forwarded-for'];

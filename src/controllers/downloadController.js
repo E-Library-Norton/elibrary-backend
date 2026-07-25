@@ -1,7 +1,12 @@
 // controllers/downloadController.js
 const https = require('https');
 const http = require('http');
-const { Op } = require('sequelize');
+const {
+  Op,
+  col,
+  fn,
+  where: sequelizeWhere,
+} = require('sequelize');
 const { Download, Book, User } = require('../models');
 const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
@@ -14,7 +19,7 @@ const BUCKET = process.env.R2_BUCKET;
 
 async function signedUrl(storedUrl) {
   const key = extractKeyFromUrl(storedUrl);
-  if (!key) return storedUrl; // fallback: return URL as-is
+  if (!key) return storedUrl;
   return getSignedUrl(
     r2,
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
@@ -108,12 +113,6 @@ async function proxyPdf(pdfUrl, res, disposition) {
 
 class DownloadController {
 
-  /**
-   * GET /api/books/:id/cover
-   * Public. Generates a presigned R2 URL for the cover image and redirects to it.
-   * The browser <img> tag follows the 302 — no CORS issue because <img> is not a fetch().
-   * For Next.js proxy routes, fetch() follows the redirect automatically.
-   */
   static async getCover(req, res, next) {
     try {
       const book = await Book.findOne({
@@ -307,32 +306,119 @@ class DownloadController {
   // GET /api/downloads — admin: all downloads
   static async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 10, userId, bookId, from, to } = req.query;
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        sort = 'newest',
+        userId,
+        bookId,
+        from,
+        to,
+      } = req.query;
+      const pageNum = Math.max(1, Number(page) || 1);
+      const limitNum = Math.min(100, Math.max(1, Number(limit) || 10));
       const where = {};
       if (userId) where.userId = userId;
       if (bookId) where.bookId = bookId;
-      if (from || to) {
-        where.downloadedAt = {};
-        if (from) where.downloadedAt[Op.gte] = new Date(from);
-        if (to) where.downloadedAt[Op.lte] = new Date(to);
+
+      const normalizedSearch =
+        typeof search === 'string' ? search.trim() : '';
+      if (normalizedSearch) {
+        const pattern = `%${normalizedSearch}%`;
+        where[Op.or] = [
+          { '$Book.title$': { [Op.iLike]: pattern } },
+          { '$Book.isbn$': { [Op.iLike]: pattern } },
+          { '$User.username$': { [Op.iLike]: pattern } },
+          { '$User.email$': { [Op.iLike]: pattern } },
+          { '$User.student_id$': { [Op.iLike]: pattern } },
+          { '$User.first_name$': { [Op.iLike]: pattern } },
+          { '$User.last_name$': { [Op.iLike]: pattern } },
+          sequelizeWhere(
+            fn(
+              'concat_ws',
+              ' ',
+              col('User.first_name'),
+              col('User.last_name')
+            ),
+            { [Op.iLike]: pattern }
+          ),
+        ];
       }
 
-      const offset = (Number(page) - 1) * Number(limit);
+      if (from || to) {
+        where.downloadedAt = {};
+        if (from) {
+          const fromDate = new Date(from);
+          if (!Number.isNaN(fromDate.getTime())) {
+            where.downloadedAt[Op.gte] = fromDate;
+          }
+        }
+        if (to) {
+          const toDate = new Date(to);
+          if (!Number.isNaN(toDate.getTime())) {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+              toDate.setUTCDate(toDate.getUTCDate() + 1);
+              where.downloadedAt[Op.lt] = toDate;
+            } else {
+              where.downloadedAt[Op.lte] = toDate;
+            }
+          }
+        }
+      }
+
+      const offset = (pageNum - 1) * limitNum;
+      const order = sort === 'most_downloaded'
+        ? [
+            [col('Book.downloads'), 'DESC'],
+            ['downloadedAt', 'DESC'],
+          ]
+        : [['downloadedAt', 'DESC']];
+
       const { count, rows } = await Download.findAndCountAll({
         where,
+        attributes: ['id', 'userId', 'bookId', 'downloadedAt'],
         include: [
-          { model: User, as: 'User', attributes: ['id', 'username', 'email', 'studentId'] },
-          { model: Book, as: 'Book', attributes: ['id', 'title', 'isbn', 'downloads'] },
+          {
+            model: User.unscoped(),
+            as: 'User',
+            attributes: [
+              'id',
+              'username',
+              'email',
+              'studentId',
+              'firstName',
+              'lastName',
+              'isDeleted',
+            ],
+            required: false,
+          },
+          {
+            model: Book.unscoped(),
+            as: 'Book',
+            attributes: [
+              'id',
+              'title',
+              'isbn',
+              'coverUrl',
+              'downloads',
+              'isDeleted',
+            ],
+            required: false,
+          },
         ],
-        order: [['downloadedAt', 'DESC']],
-        limit: Number(limit),
+        order,
+        limit: limitNum,
         offset,
+        distinct: true,
+        subQuery: false,
       });
 
       return ResponseFormatter.success(res, {
         downloads: rows, total: count,
-        page: Number(page), limit: Number(limit),
-        totalPages: Math.ceil(count / Number(limit)),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(count / limitNum),
       });
     } catch (err) { next(err); }
   }

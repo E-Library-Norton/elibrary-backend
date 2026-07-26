@@ -1,5 +1,10 @@
 const { Activity, User, Role } = require("../models");
-const { Op } = require("sequelize");
+const {
+    Op,
+    col,
+    fn,
+    where: sequelizeWhere,
+} = require("sequelize");
 const ResponseFormatter = require("../utils/responseFormatter");
 
 class ActivityController {
@@ -12,7 +17,9 @@ class ActivityController {
             const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
             const offset = (pageNum - 1) * limitNum;
             const type = req.query.type || 'all';
-            const search = req.query.search || '';
+            const action = req.query.action || 'all';
+            const search =
+                typeof req.query.search === 'string' ? req.query.search.trim() : '';
             const userId = req.query.userId || null;
             const days = req.query.days || null;
 
@@ -21,6 +28,10 @@ class ActivityController {
 
             if (type !== 'all') {
                 where.targetType = type;
+            }
+
+            if (action !== 'all') {
+                where.action = action;
             }
 
             if (userId) {
@@ -46,23 +57,34 @@ class ActivityController {
                 where[Op.or] = [
                     { action: { [Op.iLike]: `%${search}%` } },
                     { targetName: { [Op.iLike]: `%${search}%` } },
-                    { '$User.firstName$': { [Op.iLike]: `%${search}%` } },
-                    { '$User.lastName$': { [Op.iLike]: `%${search}%` } },
+                    { '$User.first_name$': { [Op.iLike]: `%${search}%` } },
+                    { '$User.last_name$': { [Op.iLike]: `%${search}%` } },
                     { '$User.username$': { [Op.iLike]: `%${search}%` } },
+                    { '$User.email$': { [Op.iLike]: `%${search}%` } },
+                    sequelizeWhere(
+                        fn(
+                            'concat_ws',
+                            ' ',
+                            col('User.first_name'),
+                            col('User.last_name')
+                        ),
+                        { [Op.iLike]: `%${search}%` }
+                    ),
                 ];
             }
 
             const userInclude = {
-                model: User,
+                model: User.unscoped(),
                 as: 'User',
                 attributes: ['id', 'username', 'email', 'firstName', 'lastName'],
-                include: [{ model: Role, as: 'Roles', attributes: ['name'] }],
                 required: false,
             };
 
-            // Two-query approach: accurate count + paginated rows (avoids inflation from JOINs)
+            // The paginated activity query only joins the one-to-one actor.
+            // Roles are loaded in one batched query below to avoid both N+1
+            // requests and pagination inflation for users with multiple roles.
             const [count, rows] = await Promise.all([
-                Activity.count({ where, include: [{ ...userInclude, required: !!search }] }),
+                Activity.count({ where, include: [userInclude] }),
                 Activity.findAll({
                     where,
                     include: [userInclude],
@@ -73,9 +95,31 @@ class ActivityController {
                 }),
             ]);
 
+            const userIds = [
+                ...new Set(rows.map((activity) => activity.userId).filter(Boolean)),
+            ];
+            const usersWithRoles = userIds.length
+                ? await User.unscoped().findAll({
+                    where: { id: { [Op.in]: userIds } },
+                    attributes: ['id'],
+                    include: [{
+                        model: Role,
+                        as: 'Roles',
+                        attributes: ['name'],
+                        through: { attributes: [] },
+                    }],
+                })
+                : [];
+            const roleByUserId = new Map(
+                usersWithRoles.map((user) => [
+                    String(user.id),
+                    user.Roles?.[0]?.name || 'user',
+                ])
+            );
+
             const activities = rows.map(act => {
                 const fullName = act.User ?
-                    (`${act.User.firstName} ${act.User.lastName}`).trim() || act.User.username :
+                    (`${act.User.firstName || ''} ${act.User.lastName || ''}`).trim() || act.User.username :
                     "System";
 
                 return {
@@ -86,7 +130,9 @@ class ActivityController {
                         initials: (act.User?.firstName && act.User?.lastName)
                             ? (act.User.firstName[0] + act.User.lastName[0]).toUpperCase()
                             : (act.User?.username?.substring(0, 2).toUpperCase() || "SY"),
-                        role: act.User?.Roles?.[0]?.name || "user"
+                        role: act.User
+                            ? roleByUserId.get(String(act.User.id)) || 'user'
+                            : 'system'
                     },
                     action: act.action,
                     target: act.targetName,

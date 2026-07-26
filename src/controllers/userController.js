@@ -1,6 +1,6 @@
 // src/controllers/userController.js
 const { Op } = require("sequelize");
-const { User, Role, Permission } = require("../models");
+const { sequelize, User, Role, Permission } = require("../models");
 const { invalidateUserCache } = require('../middleware/auth');
 const ResponseFormatter = require("../utils/responseFormatter");
 const Logger = require("../utils/logger");
@@ -11,6 +11,24 @@ const r2 = require('../config/r2');
 const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { extractKeyFromUrl, uploadToR2 } = require('../utils/cloudR2Upload');
+
+const equalsIgnoreCase = (left, right) =>
+  typeof left === "string" &&
+  typeof right === "string" &&
+  left.toLowerCase() === right.toLowerCase();
+
+const getUserConflictMessage = (user, { username, email, studentId }) => {
+  if (equalsIgnoreCase(user.username, username)) {
+    return "Username is already in use";
+  }
+  if (equalsIgnoreCase(user.email, email)) {
+    return "Email is already in use";
+  }
+  if (studentId && user.studentId === studentId) {
+    return "Student ID is already in use";
+  }
+  return "User credentials are already in use";
+};
 
 class UserController {
 
@@ -79,50 +97,103 @@ class UserController {
   static async create(req, res, next) {
     try {
       const { username, email, password, firstName, lastName, studentId, roleIds = [] } = req.body;
+      const normalizedUsername = username.trim().toLowerCase();
+      const normalizedEmail = email.trim().toLowerCase();
       const normalizedStudentId = studentId?.trim() || null;
-
-      const takenUsername = await User.findOne({
-        where: { username: { [Op.iLike]: username } },
-      });
-      if (takenUsername) throw new ConflictError("Username is already in use");
-
-      if (normalizedStudentId) {
-        const takenStudentId = await User.findOne({
-          where: { studentId: normalizedStudentId },
-        });
-        if (takenStudentId) throw new ConflictError("Student ID is already in use");
-      }
-
-      const takenEmail = await User.findOne({
-        where: { email: { [Op.iLike]: email } },
-      });
-      if (takenEmail) throw new ConflictError("Email is already in use");
-
-      const user = await User.create({
-        username,
-        email,
-        password,
-        firstName,
-        lastName,
+      const normalizedFirstName = firstName?.trim() || null;
+      const normalizedLastName = lastName?.trim() || null;
+      const credentials = {
+        username: normalizedUsername,
+        email: normalizedEmail,
         studentId: normalizedStudentId,
+      };
+
+      const { user, restored } = await sequelize.transaction(async (transaction) => {
+        const matchingUsers = await User.unscoped().findAll({
+          where: {
+            [Op.or]: [
+              { username: { [Op.iLike]: normalizedUsername } },
+              { email: { [Op.iLike]: normalizedEmail } },
+              ...(normalizedStudentId
+                ? [{ studentId: normalizedStudentId }]
+                : []),
+            ],
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        const activeConflict = matchingUsers.find(
+          (matchingUser) => !matchingUser.isDeleted
+        );
+        if (activeConflict) {
+          throw new ConflictError(
+            getUserConflictMessage(activeConflict, credentials)
+          );
+        }
+
+        if (matchingUsers.length > 1) {
+          throw new ConflictError(
+            "The supplied credentials belong to different deleted users and cannot be restored together"
+          );
+        }
+
+        const restoredUser = matchingUsers[0] || null;
+        const userValues = {
+          username: normalizedUsername,
+          email: normalizedEmail,
+          password,
+          firstName: normalizedFirstName,
+          lastName: normalizedLastName,
+          studentId: normalizedStudentId,
+          isDeleted: false,
+          isActive: true,
+        };
+
+        const savedUser = restoredUser
+          ? await restoredUser.update(
+              {
+                ...userValues,
+                twoFactorEnabled: false,
+                twoFactorSecret: null,
+                recoveryCodes: null,
+              },
+              { transaction }
+            )
+          : await User.create(userValues, { transaction });
+
+        const roles = roleIds.length
+          ? await Role.findAll({
+              where: { id: roleIds },
+              transaction,
+            })
+          : await Role.findAll({
+              where: { name: "user" },
+              transaction,
+            });
+
+        await savedUser.setRoles(roles, { transaction });
+
+        if (restoredUser) {
+          await savedUser.setPermissions([], { transaction });
+        }
+
+        return { user: savedUser, restored: Boolean(restoredUser) };
       });
 
-      if (roleIds.length > 0) {
-        const roles = await Role.findAll({ where: { id: roleIds } });
-        await user.setRoles(roles);
-      } else {
-        const defaultRole = await Role.findOne({ where: { name: "user" } });
-        if (defaultRole) await user.addRole(defaultRole);
-      }
-
-      Logger.info(`Admin created user: ${username}`);
+      Logger.info(
+        `Admin ${restored ? "restored" : "created"} user: ${normalizedUsername}`
+      );
 
       await logActivity({
         userId: req.user.id,
-        action: "created",
+        action: restored ? "restored" : "created",
         targetType: "user",
         targetId: user.id,
-        targetName: `${firstName} ${lastName}`.trim() || username,
+        targetName:
+          `${normalizedFirstName || ""} ${normalizedLastName || ""}`.trim() ||
+          normalizedUsername,
+        metadata: { restored },
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
@@ -131,7 +202,12 @@ class UserController {
         include: [{ association: "Roles", through: { attributes: [] } }],
       });
 
-      return ResponseFormatter.success(res, created, "User created successfully", 201);
+      return ResponseFormatter.success(
+        res,
+        created,
+        restored ? "User restored successfully" : "User created successfully",
+        restored ? 200 : 201
+      );
     } catch (err) {
       next(err);
     }

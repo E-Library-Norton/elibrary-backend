@@ -3,8 +3,10 @@ const router = require('express').Router();
 const BookController = require('../controllers/bookController');
 const DownloadController = require('../controllers/downloadController');
 const ReviewController = require('../controllers/reviewController');
+const ReadingController = require('../controllers/readingController');
 const { authenticate, authorize, requirePermission, authenticateStream } = require('../middleware/auth');
 const { uploadMulti, uploadScan } = require('../middleware/upload');
+const readingRules = require('../middleware/readingValidation');
 
 // Public — anyone can browse
 router.get('/', BookController.getAll);
@@ -23,6 +25,62 @@ router.get('/:id/download', authenticateStream, DownloadController.recordDownloa
 
 // Admin stats for a book
 router.get('/:id/downloads', authenticate, requirePermission('books.view'), BookController.getDownloads);
+
+// Personal reading data — always scoped to the authenticated user.
+router.get(
+  '/:bookId/reading-progress',
+  authenticate,
+  readingRules.book,
+  ReadingController.getProgress
+);
+router.put(
+  '/:bookId/reading-progress',
+  authenticate,
+  readingRules.updateProgress,
+  ReadingController.updateProgress
+);
+router.get(
+  '/:bookId/bookmarks',
+  authenticate,
+  readingRules.book,
+  ReadingController.listBookmarks
+);
+router.post(
+  '/:bookId/bookmarks',
+  authenticate,
+  readingRules.createBookmark,
+  ReadingController.createBookmark
+);
+router.delete(
+  '/:bookId/bookmarks/:bookmarkId',
+  authenticate,
+  readingRules.deleteBookmark,
+  ReadingController.deleteBookmark
+);
+router.get(
+  '/:bookId/notes',
+  authenticate,
+  readingRules.book,
+  ReadingController.listNotes
+);
+router.post(
+  '/:bookId/notes',
+  authenticate,
+  readingRules.createNote,
+  ReadingController.createNote
+);
+router.patch(
+  '/:bookId/notes/:noteId',
+  authenticate,
+  readingRules.updateNote,
+  ReadingController.updateNote
+);
+router.delete(
+  '/:bookId/notes/:noteId',
+  authenticate,
+  readingRules.deleteNote,
+  ReadingController.deleteNote
+);
 
 
 router.post('/', authenticate, requirePermission('books.create'), uploadMulti, BookController.create);

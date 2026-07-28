@@ -19,6 +19,9 @@ const Activity = require('./Activity');
 const Review = require('./Review');
 const PushSubscription = require('./PushSubscription');
 const Feedback = require('./Feedback');
+const ReadingProgress = require('./ReadingProgress');
+const Bookmark = require('./Bookmark');
+const ReadingNote = require('./ReadingNote');
 
 // ── Junction table models (all timestamps: false — these tables have NO created_at) ──
 const UsersRoles = sequelize.define('UsersRoles', {
@@ -116,11 +119,27 @@ Feedback.belongsTo(User, { foreignKey: 'user_id', as: 'User', onDelete: 'SET NUL
 Feedback.belongsTo(User, { foreignKey: 'resolved_by', as: 'Resolver', onDelete: 'SET NULL' });
 User.hasMany(Feedback, { foreignKey: 'user_id', as: 'Feedbacks' });
 
+// Personal reading data
+ReadingProgress.belongsTo(User, { foreignKey: 'userId', as: 'User', onDelete: 'CASCADE' });
+ReadingProgress.belongsTo(Book, { foreignKey: 'bookId', as: 'Book', onDelete: 'CASCADE' });
+User.hasMany(ReadingProgress, { foreignKey: 'userId', as: 'ReadingProgress' });
+Book.hasMany(ReadingProgress, { foreignKey: 'bookId', as: 'ReadingProgress' });
+
+Bookmark.belongsTo(User, { foreignKey: 'userId', as: 'User', onDelete: 'CASCADE' });
+Bookmark.belongsTo(Book, { foreignKey: 'bookId', as: 'Book', onDelete: 'CASCADE' });
+User.hasMany(Bookmark, { foreignKey: 'userId', as: 'Bookmarks' });
+Book.hasMany(Bookmark, { foreignKey: 'bookId', as: 'Bookmarks' });
+
+ReadingNote.belongsTo(User, { foreignKey: 'userId', as: 'User', onDelete: 'CASCADE' });
+ReadingNote.belongsTo(Book, { foreignKey: 'bookId', as: 'Book', onDelete: 'CASCADE' });
+User.hasMany(ReadingNote, { foreignKey: 'userId', as: 'ReadingNotes' });
+Book.hasMany(ReadingNote, { foreignKey: 'bookId', as: 'ReadingNotes' });
+
 // ── Exports 
 module.exports = {
   sequelize,
   User, Role, Permission, Setting, Activity,
   Book, Author, Editor, Category, Publisher, MaterialType, Department, Download,
-  Review, PushSubscription, Feedback,
+  Review, PushSubscription, Feedback, ReadingProgress, Bookmark, ReadingNote,
   BookAuthor, BookEditor, PublishersBooks,
 };

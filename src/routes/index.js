@@ -27,6 +27,7 @@ const reviewRoutes = require('./reviews');
 const pushRoutes = require('./push');
 const feedbackRoutes = require('./feedback');
 const aiRecommendationRoutes = require('./aiRecommendations');
+const readingLibraryRoutes = require('./readingLibrary');
 // ── Mount 
 
 // Auth
@@ -48,6 +49,7 @@ router.use('/publishers', publisherRoutes);
 router.use('/material-types', materialTypeRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/downloads', downloadRoutes);
+router.use('/library', readingLibraryRoutes);
 router.use('/stats', statsRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/activities', activityLogRoutes);

@@ -1,39 +1,156 @@
 // controllers/author.controller.js
-const { Op, UniqueConstraintError } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const { Author, Book } = require('../models');
 const ResponseFormatter = require('../utils/responseFormatter');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLogger');
+
+const ACTIVE_BOOK_WHERE = {
+  isActive: true,
+  isDeleted: false,
+};
+
+function parsePositiveInteger(value, fieldName) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new ValidationError(`Invalid ${fieldName}`);
+  }
+  return parsed;
+}
+
+function parsePagination(query, defaultLimit) {
+  const page = parsePositiveInteger(query.page ?? 1, 'page');
+  const requestedLimit = parsePositiveInteger(
+    query.limit ?? defaultLimit,
+    'limit'
+  );
+
+  return {
+    page,
+    limit: Math.min(requestedLimit, 100),
+  };
+}
 
 class AuthorController {
 
   // GET /api/authors
   static async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 20, search = '' } = req.query;
+      const { page, limit } = parsePagination(req.query, 20);
+      const search = String(req.query.search ?? '').trim();
       const where = search
         ? { [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { nameKh: { [Op.iLike]: `%${search}%` } }] }
         : {};
 
-      const { count, rows } = await Author.findAndCountAll({
-        where, order: [['name', 'ASC']],
-        limit: Number(limit), offset: (Number(page) - 1) * Number(limit),
+      const [total, rows] = await Promise.all([
+        Author.count({ where }),
+        Author.findAll({
+          where,
+          attributes: {
+            include: [
+              [
+                fn('COUNT', fn('DISTINCT', col('Books.id'))),
+                'totalBooks',
+              ],
+            ],
+          },
+          include: [
+            {
+              model: Book,
+              as: 'Books',
+              attributes: [],
+              through: { attributes: [] },
+              where: ACTIVE_BOOK_WHERE,
+              required: false,
+            },
+          ],
+          group: ['Author.id'],
+          order: [['name', 'ASC']],
+          limit,
+          offset: (page - 1) * limit,
+          subQuery: false,
+        }),
+      ]);
+
+      const authors = rows.map((author) => {
+        const data = author.toJSON();
+        return {
+          ...data,
+          totalBooks: Number(data.totalBooks) || 0,
+        };
       });
+
       return ResponseFormatter.success(res, {
-        authors: rows, total: count, page: Number(page),
-        limit: Number(limit), totalPages: Math.ceil(count / Number(limit)),
-      });
+        authors,
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      }, 'Authors retrieved successfully');
     } catch (err) { next(err); }
   }
 
   // GET /api/authors/:id
   static async getById(req, res, next) {
     try {
-      const author = await Author.findByPk(req.params.id, {
-        include: [{ model: Book, as: 'Books', attributes: ['id', 'title', 'coverUrl', 'publicationYear'] }],
+      const authorId = parsePositiveInteger(req.params.id, 'author ID');
+      const { page, limit } = parsePagination(req.query, 12);
+      const author = await Author.findByPk(authorId, {
+        attributes: ['id', 'name', 'nameKh', 'biography', 'website'],
       });
       if (!author) throw new NotFoundError('Author not found');
-      return ResponseFormatter.success(res, author);
+
+      const [books, totalBooks] = await Promise.all([
+        author.getBooks({
+          where: ACTIVE_BOOK_WHERE,
+          attributes: [
+            'id',
+            'title',
+            'titleKh',
+            'coverUrl',
+            'publicationYear',
+            'views',
+            'downloads',
+          ],
+          through: { attributes: ['isPrimaryAuthor'] },
+          order: [
+            ['publicationYear', 'DESC NULLS LAST'],
+            ['title', 'ASC'],
+          ],
+          limit,
+          offset: (page - 1) * limit,
+        }),
+        author.countBooks({ where: ACTIVE_BOOK_WHERE }),
+      ]);
+
+      const data = {
+        ...author.toJSON(),
+        totalBooks,
+        books: books.map((book) => {
+          const plainBook = book.toJSON();
+          return {
+            id: plainBook.id,
+            title: plainBook.title,
+            titleKh: plainBook.titleKh,
+            coverUrl: plainBook.coverUrl,
+            publicationYear: plainBook.publicationYear,
+            views: plainBook.views,
+            downloads: plainBook.downloads,
+            isPrimaryAuthor: Boolean(
+              plainBook.BookAuthor?.isPrimaryAuthor
+            ),
+          };
+        }),
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(totalBooks / limit)),
+      };
+
+      return ResponseFormatter.success(
+        res,
+        data,
+        'Author details retrieved successfully'
+      );
     } catch (err) { next(err); }
   }
 

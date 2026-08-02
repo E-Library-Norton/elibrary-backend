@@ -1,15 +1,59 @@
-# Norton E-Library — Backend Database Guide
+# Norton E-Library — Backend Operations and Database Guide
 
-> **Quick answer:** Yes — if you saved a backup (`.sql.gz` file) while your old Render free DB was alive, you can fully restore it to any new database at any time. The backup file contains everything: schema + all data.
+> **Last updated:** August 2, 2026
+> **Runtime:** Node.js/Express, Sequelize, PostgreSQL, Cloudflare R2, Socket.IO, and Google Gemini
+
+The backend exposes the `/api` REST API for authentication/RBAC, book metadata and media, reviews, feedback, push subscriptions, analytics, AI recommendations, and per-user reading progress, bookmarks, and notes.
+
+The database currently contains 25 application tables. The latest migration is `20260728000001-create-reading-features.js`.
+
+## Quick start
+
+> **Current clean-install blocker:** the backend imports Express 5, but
+> `package.json` does not currently declare `express`. Existing local
+> `node_modules` can hide this problem. Add Express to the manifest/lockfile
+> before treating a clean `npm install` as reproducible.
+
+```bash
+cd elibrary-backend
+npm install
+cp .env.example .env.local
+npm run db:migrate
+npm run db:seed:permissions
+npm run dev
+```
+
+The API listens on `http://localhost:5005` by default. `GET /` returns a health
+message and `GET /api` returns API name/version information.
+
+Before starting, replace every placeholder in `.env.local`. The code also uses
+`FORGOT_PASSWORD_SECRET`, `DB_SSL`, and the three `VAPID_*` variables even though
+the current example template does not list all of them. The complete code-level
+variable list is maintained in [PRD.md](PRD.md#12-environment-and-deployment).
+
+### Useful commands
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start with Nodemon |
+| `npm start` | Start the API with Node |
+| `npm run db:migrate:status` | Show migration state |
+| `npm run db:migrate` | Apply pending migrations |
+| `npm run db:migrate:undo` | Undo the latest migration |
+| `npm run db:seed:permissions` | Upsert the current permission names |
+| `npm run db:backup` | Back up the Docker database |
+| `npm run db:backup:local` | Back up the configured local database |
+| `npm run health` | Run service health checks |
+| `npm run monitor:report` | Generate a monitoring report |
 
 ---
 
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
-2. [How Render Free DB Works (Important)](#2-how-render-free-db-works-important)
+2. [Managed Database Retention and Backups](#2-managed-database-retention-and-backups)
 3. [Create a Backup — Do This Regularly](#3-create-a-backup--do-this-regularly)
-4. [Scenario: Old Render DB Expired → Restore to New DB](#4-scenario-old-render-db-expired--restore-to-new-db)
+4. [Scenario: Database Lost or Replaced → Restore to New DB](#4-scenario-database-lost-or-replaced--restore-to-new-db)
 5. [Check a Backup File Before Restoring](#5-check-a-backup-file-before-restoring)
 6. [Restore to Other Targets](#6-restore-to-other-targets)
 7. [Run Migrations After Restore](#7-run-migrations-after-restore)
@@ -24,7 +68,8 @@
 
 ```bash
 # Go to the backend folder
-cd /Users/david/Documents/Norton-University/E-Library-NU/user-backend
+cd elibrary-backend
+npm install
 
 # Make sure PostgreSQL client tools are installed
 psql --version        # should print psql (PostgreSQL) 15.x or higher
@@ -37,18 +82,17 @@ brew link --force libpq
 
 ---
 
-## 2) How Render Free DB Works (Important)
+## 2) Managed Database Retention and Backups
 
 | Fact | Detail |
 |---|---|
-| **Free DB lifetime** | 90 days — Render deletes it after that |
-| **Render's own backups** | Free tier has **no automated backups** — you must do it yourself |
-| **After deletion** | The database URL stops working; data is gone from Render's side |
+| **Retention** | Depends on the active database provider and plan; verify it in the provider dashboard |
+| **Provider backups** | Do not assume they are included—confirm the schedule and retention for the active plan |
+| **After deletion** | The database URL stops working and provider-side recovery may be unavailable |
 | **Your local `.sql.gz` backup** | ✅ Permanently yours — valid forever, restores to any PostgreSQL DB |
 | **Can you restore old backup to new DB?** | ✅ **Yes** — follow Section 4 below |
 
-> ⚠️ **Action required while your DB is still alive:** Run a backup right now using Section 3.
-> Once Render deletes the DB, you cannot back it up anymore.
+> Keep encrypted backup copies outside this repository and periodically test that they restore successfully.
 
 ---
 
@@ -79,19 +123,20 @@ npm run db:backup:local
 
 ---
 
-## 4) Scenario: Old Render DB Expired → Restore to New DB
+## 4) Scenario: Database Lost or Replaced → Restore to New DB
 
-This is the complete step-by-step for: **"My old Render free DB is gone / expired. I have a backup file. How do I move to a new database?"**
+This is the complete step-by-step for restoring a saved backup after the old
+database was deleted, expired, corrupted, or replaced.
 
 ### Step 1 — Create a new PostgreSQL database
 
-**Option A — New Render free DB** *(another free 90-day DB)*
+**Option A — New Render PostgreSQL database**
 1. Go to [render.com](https://render.com) → **New** → **PostgreSQL**
 2. Give it a name (e.g. `elibrary-db-v2`)
 3. Wait ~1 minute for provisioning
 4. Click the new DB → copy the **External Database URL**
 
-**Option B — Supabase** *(free, no expiry)*
+**Option B — Supabase PostgreSQL** *(availability and retention depend on the active plan)*
 1. Go to [supabase.com](https://supabase.com) → New project
 2. Settings → Database → copy the **Connection String (URI)** with `?sslmode=require`
 
@@ -192,7 +237,7 @@ psql "$NEW_DATABASE_URL" -c "SELECT count(*) FROM books;"
 psql "$NEW_DATABASE_URL" -c "SELECT count(*) FROM \"SequelizeMeta\";"
 ```
 
-Expected: `tables` > 10, `users`/`books` > 0, `SequelizeMeta` shows all migrations ran.
+Expected: 25 application tables when every current migration is applied, non-zero `users`/`books` for a populated backup, and a `SequelizeMeta` row for every migration.
 
 ---
 
@@ -272,7 +317,7 @@ Run a backup every day at 2:00 AM automatically:
 crontab -e
 
 # Add this line (adjust path to your project)
-0 2 * * * cd /Users/david/Documents/Norton-University/E-Library-NU/user-backend && ./scripts/backup-db.sh --url "postgresql://USER:PASS@HOST/DB?sslmode=require" >> logs/backup.log 2>&1
+0 2 * * * cd /path/to/E-Library/elibrary-backend && ./scripts/backup-db.sh --url "postgresql://USER:PASS@HOST/DB?sslmode=require" >> logs/backup.log 2>&1
 ```
 
 Backups older than 7 days are deleted automatically. To keep 30 days instead:

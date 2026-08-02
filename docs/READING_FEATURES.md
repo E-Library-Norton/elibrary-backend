@@ -1,5 +1,7 @@
 # Reading Progress, Bookmarks, and Notes
 
+> Last updated: August 2, 2026
+
 This feature adds authenticated, per-user PDF reading state without changing
 the existing JWT, PDF streaming/download, or Cloudflare R2 flows.
 
@@ -12,7 +14,7 @@ npm run db:migrate:status
 npm run db:migrate
 ```
 
-The migration creates:
+Migration `20260728000001-create-reading-features.js` creates:
 
 - `reading_progress` with a unique `(user_id, book_id)` index
 - `bookmarks` with a unique `(user_id, book_id, page_number)` index
@@ -83,9 +85,10 @@ Supported highlight colors are `yellow`, `green`, `blue`, `pink`, and
 
 ## 3. Frontend integration
 
-The user frontend includes same-origin Next.js route handlers for every
-endpoint. They decrypt the existing HTTP-only access-token cookie on the
-server and forward the JWT to Express. Browser code never receives the JWT.
+The student frontend includes same-origin Next.js route handlers for every
+endpoint. They decrypt the existing HTTP-only access-token cookie on the server
+and forward the JWT to Express. Browser code does not receive the JWT for these
+reading requests.
 
 RTK Query endpoints are in:
 
@@ -99,11 +102,11 @@ Reusable UI is in:
 components/reading/
 ```
 
-The existing `components/pdf-reader/PdfReader.tsx` now:
+`components/pdf-reader/PdfReader.tsx`:
 
 - reads the real page count from PDF.js
-- restores an explicit `?page=` first, then server progress, then the existing
-  local fallback
+- restores an explicit `?page=` first, then server progress, then the local
+  fallback
 - writes progress after a 900 ms debounce
 - flushes pending progress when the tab becomes hidden or the reader unmounts
 - keeps the existing `/api/books/:id/stream` R2 proxy
@@ -118,13 +121,12 @@ The reader URL accepts:
 /books/:bookId/read?page=20&from=/library
 ```
 
-`page` opens the requested PDF page. `from` continues to use the existing
-catalog-return navigation.
+`page` opens the requested PDF page. `from` preserves catalog-return navigation.
 
 ## 4. My Library
 
-`GET /api/library/reading-progress` loads all progress rows with their book and
-category in one joined query. Bookmark and note counts are grouped in two
+`GET /api/library/reading-progress` loads progress rows with their book,
+category, authors, and publisher. Bookmark and note counts are grouped in two
 additional queries, avoiding N+1 queries.
 
 The Reading and Completed tabs display:
@@ -137,30 +139,37 @@ The Reading and Completed tabs display:
 - Continue Reading at the saved page
 
 Completed books also unlock a **Generate Citation** action. Citation metadata
-comes from the existing Book, Authors, and Publisher relations and supports:
+comes from Book, Authors, and Publisher relations and supports:
 
 - APA 7
 - MLA 9
 - Chicago
+- IEEE
 - Copy to clipboard
 - Download as a `.txt` file
 
 ISBN is displayed as supporting metadata and is included in the downloaded
-citation file without being incorrectly inserted into citation styles that do
-not normally require it.
+citation file without being incorrectly inserted into styles that do not
+normally require it.
 
 Local progress is used only if the server request fails, so users do not lose
 their previous browser-only reading state during deployment.
 
+Favorites and recently viewed history remain per-user browser state in
+`librarySlice.ts`; they are separate from server-backed page bookmarks and
+reading progress.
+
 ## 5. Deployment order
 
-1. Deploy the backend code.
-2. Run `npm run db:migrate` against the target PostgreSQL database.
-3. Confirm the new endpoints return authenticated `200` responses.
-4. Deploy the frontend.
-5. Open a PDF, change pages, wait one second, and confirm the book appears in
+1. Back up the target database.
+2. Deploy the backend code.
+3. Run `npm run db:migrate` against the target PostgreSQL database.
+4. Confirm the new endpoints return authenticated `200` responses.
+5. Deploy the student frontend.
+6. Open a PDF, change pages, wait one second, and confirm the book appears in
    My Library.
-6. Test a bookmark and a note with two different user accounts to confirm
+7. Test a bookmark and a note with two different user accounts to confirm
    ownership isolation.
 
-No new environment variables are required.
+No new environment variables are required specifically for these reading
+features.

@@ -1,6 +1,6 @@
 # 📋 Feature Request Backlog — Norton E-Library
 
-> **Last updated:** 2026-05-13 (Sprint 19)
+> **Last updated:** 2026-08-02 (current-code audit)
 > **Source:** Student feedback (contact form), admin observations, stakeholder meetings
 > **Prioritization:** MoSCoW (Must / Should / Could / Won't) × Impact–Effort matrix
 
@@ -21,21 +21,21 @@
 
 | # | Feature | Description | Effort | Impact | Status |
 |---|---------|-------------|--------|--------|--------|
-| F-001 | **Reading history & progress** | Track pages read per book, show progress bar on library page, resume where left off | 3d | 🔥 High | ✅ Done (v1.0) |
-| F-002 | **Bookmark / favorites list** | Let students save books to a personal “My Library” collection for quick access | 2d | 🔥 High | ✅ Done (v1.0) |
-| F-003 | **Push notification preferences** | Allow students to opt-in/out of specific notification types (new books, reminders) | 1d | 🔥 High | ✅ Done (v1.0) |
+| F-001 | **Reading history & progress** | Server-backed page progress, completion state, resume position, and Reading/Completed library tabs | 3d | 🔥 High | ✅ Done (July 2026) |
+| F-002 | **Favorites + page bookmarks** | Favorites/history are saved per user in the browser; PDF page bookmarks sync to the account | 2d | 🔥 High | 🔄 Partial — favorites are local-only |
+| F-003 | **Push notification preferences** | Web Push subscribe/unsubscribe exists; per-notification-type preferences are not implemented | 1d | 🔥 High | 🔄 Partial |
 
 ## 🟠 P1 — Should Have
 
 | # | Feature | Description | Effort | Impact | Status |
 |---|---------|-------------|--------|--------|--------|
 | F-004 | **Reading lists / collections** | Curated lists by department (e.g., "CS Semester 1 Must-Reads"), shared via link | 3d | ⚡ Medium–High | 📋 Planned |
-| F-005 | **Advanced book search filters** | Filter by year, department, material type, language, rating range on library page | 2d | ⚡ Medium–High | 📋 Planned |
+| F-005 | **Advanced book search filters** | Backend supports year, department, material type, language, and author filters; the student catalog currently exposes search, category, and sorting | 2d | ⚡ Medium–High | 🔄 Partial |
 | F-006 | **Dark mode PDF reader** | Invert colors / sepia mode for comfortable night-time reading in the PDF viewer | 2d | ⚡ Medium–High | 📋 Planned |
 | F-007 | **Book request form** | Students can request books the library doesn't have yet; admin sees request queue | 2d | ⚡ Medium | 📋 Planned |
-| F-008 | **Download for offline reading** | Allow PDF download (with watermark) for verified students, track download count | 3d | ⚡ Medium | 📋 Planned |
+| F-008 | **Download for offline reading** | Authenticated PDF download and tracking are live; watermarking/offline shelf support remain open | 3d | ⚡ Medium | 🔄 Partial |
 | F-009 | **Email digest — weekly new books** | Automated weekly email with newly added books matching student's department | 2d | ⚡ Medium | 📋 Planned |
-| F-010 | **Dashboard — feedback analytics** | Charts for feedback trends over time, avg rating, response time metrics | 2d | ⚡ Medium | 📋 Planned |
+| F-010 | **Dashboard — feedback analytics** | Feedback statistics, filtering, status updates, resolver details, and admin notes | 2d | ⚡ Medium | ✅ Done |
 | F-020 | **Social login (Google / Facebook / GitHub)** | OAuth2 social providers alongside email/password — Google, Facebook, GitHub | 3d | ⚡ Medium–High | ✅ Done (v1.1) |
 
 ## 🟡 P2 — Could Have
@@ -43,13 +43,14 @@
 | # | Feature | Description | Effort | Impact | Status |
 |---|---------|-------------|--------|--------|--------|
 | F-011 | **Study groups / discussion threads** | Per-book discussion board for students to share notes and ask questions | 5d | 💡 Medium | 💭 Idea |
-| F-012 | **Annotation & highlights** | Highlight text and add personal notes while reading PDFs, synced to account | 5d | 💡 Medium | 💭 Idea |
+| F-012 | **Annotation & highlights** | Select PDF text, highlight it, and create/edit/delete color-coded personal notes synced to the account | 5d | 💡 Medium | ✅ Done (July 2026) |
 | F-013 | **Gamification — reading streaks** | Track daily reading streaks, badges for milestones (10 books, 100 hours, etc.) | 3d | 💡 Low–Med | 💭 Idea |
-| F-014 | **AI chatbot for book Q&A** | Chat with a book's content — ask questions, get summaries per chapter | 5d | 💡 Medium | 💭 Idea |
+| F-014 | **AI chatbot for book Q&A** | Backend chat and per-book summary endpoints exist; a complete student chat experience is still open | 5d | 💡 Medium | 🔄 Partial |
 | F-015 | **Multi-language UI** | Khmer (ភាសាខ្មែរ) toggle for the student frontend interface | 4d | 💡 Medium | 💭 Idea |
-| F-016 | **QR code book sharing** | Generate QR code for any book page — scan to open on mobile | 1d | 💡 Low | 💭 Idea |
-| F-017 | **Related books carousel** | Show "Students also read…" section below each book using AI similarity | 2d | 💡 Low–Med | 💭 Idea |
+| F-016 | **QR code book sharing** | Generate a QR code and social/copy links for a stable book URL | 1d | 💡 Low | ✅ Done |
+| F-017 | **Related books carousel** | Show related books from the same category on the book detail page | 2d | 💡 Low–Med | ✅ Done (category-based) |
 | F-018 | **Reading time estimates** | Display estimated reading time on book cards based on page count | 0.5d | 💡 Low | 💭 Idea |
+| F-024 | **Citation generator** | Generate, copy, and download APA, MLA, Chicago, and IEEE citations | 1d | 💡 Medium | ✅ Done (July 2026) |
 
 ## 🟢 P3 — Won't Have (Now)
 
@@ -95,9 +96,7 @@
 
 | Date | Change |
 |------|--------|
-| 2026-05-13 | Updated DIAGRAM.md to v2.0: ERD reflects Review, Feedback, PushSubscription models; API route structure updated to match actual routes (`/uploads`, `/stats`, `/downloads`, `/ai/recommendations`); auth token expiry corrected to 30d/60d; RBAC roles & permissions updated to match seeded data; 2FA and Reviews/Feedback flow diagrams added. F-020 social login moved from Won't Have → Done (v1.1) — OAuth for Google, Facebook, GitHub fully implemented. |
-| 2026-05-08 | Project reaches 100% completion (237/237 tasks). Stable v1.1 in production. Phase 7 monitoring confirmed green — Sentry error rate nominal, DB stable at 18 MB / 70 indexes, all critical user-reported bugs resolved. All developer workloads at 100%. Backlog reprioritized for v2.0 sprint planning. |
-| 2026-04-19 | Postman collection shipped (`E-Library-API.postman_collection.json`, 80+ requests). `aiRecommendations` route mount bug fixed. Token security reviewed (deferred). Task 5.1.7 ✅. |
-| 2026-04-18 | Updated F-001, F-002, F-003 to Done — shipped in v1.0 (personal library + push notifications). DB migrated to new Render instance (`nu_elibrary_db_nvwp`). |
-| 2026-04-07 | Feedback system shipped (B.15 ✅), A/B test hero CTA live (B.19 ✅), backlog reprioritized after first 2 weeks of real student usage. |
-| 2026-04-01 | Initial backlog created with 23 feature ideas from team brainstorm and early feedback |
+| 2026-08-02 | Audited the backlog against the current repositories. Marked database-backed reading progress, PDF bookmarks/notes/highlights, citations, QR sharing, related books, and feedback management accurately; clarified browser-only favorites/history and partially implemented notification/search/download/chat work. |
+| 2026-07-28 | Added PostgreSQL-backed reading progress, page bookmarks, reading notes/highlights, My Library Reading/Completed tabs, and citation actions. |
+| 2026-05-13 | OAuth, 2FA, reviews, feedback, and push subscription work entered the implemented baseline. |
+| 2026-04-01 | Initial backlog created from team brainstorming and early feedback. |

@@ -26,6 +26,17 @@ async function seed() {
     { id: 16, name: 'books.update',       description: 'Update books' },
     { id: 17, name: 'books.delete',       description: 'Delete books' },
     { id: 18, name: 'books.download',     description: 'Download books' },
+    { name: 'reports.view',               description: 'View the reports dashboard' },
+    { name: 'reports.users.view',         description: 'View user reports' },
+    { name: 'reports.books.view',         description: 'View book and catalog reports' },
+    { name: 'reports.logins.view',        description: 'View login reports' },
+    { name: 'reports.downloads.view',     description: 'View download reports' },
+    { name: 'reports.reading.view',       description: 'View reading progress reports' },
+    { name: 'reports.reviews.view',       description: 'View review reports' },
+    { name: 'reports.feedback.view',      description: 'View feedback reports' },
+    { name: 'reports.activities.view',    description: 'View activity reports' },
+    { name: 'reports.export.pdf',         description: 'Export reports as PDF' },
+    { name: 'reports.export.excel',       description: 'Export reports as Excel' },
   ];
 
   for (const p of permissions) {

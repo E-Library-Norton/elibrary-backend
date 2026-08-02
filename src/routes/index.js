@@ -28,6 +28,7 @@ const pushRoutes = require('./push');
 const feedbackRoutes = require('./feedback');
 const aiRecommendationRoutes = require('./aiRecommendations');
 const readingLibraryRoutes = require('./readingLibrary');
+const reportRoutes = require('./reports');
 // ── Mount 
 
 // Auth
@@ -57,6 +58,7 @@ router.use('/reviews', reviewRoutes);
 router.use('/push', pushRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/ai/recommendations', aiRecommendationRoutes);
+router.use('/admin/reports', reportRoutes);
 
 // ── API info 
 router.get('/', (req, res) => {

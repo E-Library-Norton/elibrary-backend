@@ -22,6 +22,7 @@ const Feedback = require('./Feedback');
 const ReadingProgress = require('./ReadingProgress');
 const Bookmark = require('./Bookmark');
 const ReadingNote = require('./ReadingNote');
+const UserPreference = require('./UserPreference');
 
 // ── Junction table models (all timestamps: false — these tables have NO created_at) ──
 const UsersRoles = sequelize.define('UsersRoles', {
@@ -135,11 +136,17 @@ ReadingNote.belongsTo(Book, { foreignKey: 'bookId', as: 'Book', onDelete: 'CASCA
 User.hasMany(ReadingNote, { foreignKey: 'userId', as: 'ReadingNotes' });
 Book.hasMany(ReadingNote, { foreignKey: 'bookId', as: 'ReadingNotes' });
 
+// Reading preferences
+UserPreference.belongsTo(User, { foreignKey: 'userId', as: 'User', onDelete: 'CASCADE' });
+UserPreference.belongsTo(Department, { foreignKey: 'departmentId', as: 'Department', onDelete: 'SET NULL' });
+User.hasOne(UserPreference, { foreignKey: 'userId', as: 'Preference' });
+Department.hasMany(UserPreference, { foreignKey: 'departmentId', as: 'UserPreferences' });
+
 // ── Exports 
 module.exports = {
   sequelize,
   User, Role, Permission, Setting, Activity,
   Book, Author, Editor, Category, Publisher, MaterialType, Department, Download,
-  Review, PushSubscription, Feedback, ReadingProgress, Bookmark, ReadingNote,
+  Review, PushSubscription, Feedback, ReadingProgress, Bookmark, ReadingNote, UserPreference,
   BookAuthor, BookEditor, PublishersBooks,
 };

@@ -29,6 +29,7 @@ const feedbackRoutes = require('./feedback');
 const aiRecommendationRoutes = require('./aiRecommendations');
 const readingLibraryRoutes = require('./readingLibrary');
 const reportRoutes = require('./reports');
+const userPreferenceRoutes = require('./userPreferences');
 // ── Mount 
 
 // Auth
@@ -36,6 +37,7 @@ router.use('/auth', authRoutes);
 
 // RBAC
 router.use('/users', userRoutes);
+router.use('/user', userPreferenceRoutes);
 router.use('/roles', roleRoutes);
 router.use('/permissions', permissionRoutes);
 

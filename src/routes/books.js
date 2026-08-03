@@ -7,10 +7,18 @@ const ReadingController = require('../controllers/readingController');
 const { authenticate, authorize, requirePermission, authenticateStream } = require('../middleware/auth');
 const { uploadMulti, uploadScan } = require('../middleware/upload');
 const readingRules = require('../middleware/readingValidation');
+const PreferenceController = require('../controllers/preferenceController');
+const { preferenceRules } = require('../middleware/preferenceValidation');
 
 // Public — anyone can browse
 router.get('/', BookController.getAll);
 router.post('/scan-search', uploadScan, BookController.scanSearch);
+router.get(
+  '/recommendations',
+  authenticate,
+  preferenceRules.recommendations,
+  PreferenceController.recommendations
+);
 router.get('/:id', BookController.getById);
 router.get('/:id/summary', BookController.getSummary); // AI summary (Gemini, cached 24 h)
 router.post('/:id/share', BookController.incrementShare);

@@ -43,9 +43,7 @@ PDF exports bundle Kantumruy Pro for readable Khmer text. Set `REPORT_FONT_PATH`
       "uniqueBooks": 96,
       "uniqueUsers": 20
     },
-    "charts": {
-      "trend": [{ "label": "2026-08-02", "value": 8 }]
-    },
+    "charts": {},
     "records": [],
     "pagination": {
       "page": 1,
@@ -62,3 +60,5 @@ PDF exports bundle Kantumruy Pro for readable Khmer text. Set `REPORT_FONT_PATH`
   }
 }
 ```
+
+The `charts` object is retained as an empty compatibility field. Reports return summary cards and detailed records without running chart aggregation queries. IP addresses, unavailable viewer metrics, and columns that are empty for every exported record are excluded.

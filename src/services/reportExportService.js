@@ -5,6 +5,7 @@ const PDFDocument = require('pdfkit');
 const { REPORT_TITLES, TIME_ZONE } = require('./reportService');
 
 const SENSITIVE_FIELDS = /password|secret|token|recovery|descriptor|otp|hash/i;
+const HIDDEN_EXPORT_FIELDS = new Set(['coverUrl', 'ipAddress']);
 const MAX_EXPORT_ROWS = 5_000;
 
 function humanize(value) {
@@ -29,7 +30,16 @@ function excelSafe(value) {
 
 function columnsFor(records) {
   const keys = records.length ? Object.keys(records[0]) : [];
-  return keys.filter((key) => !SENSITIVE_FIELDS.test(key) && key !== 'coverUrl');
+  return keys.filter((key) => (
+    !SENSITIVE_FIELDS.test(key)
+    && !HIDDEN_EXPORT_FIELDS.has(key)
+    && records.some((record) => {
+      const value = record[key];
+      return value !== null
+        && value !== undefined
+        && (typeof value !== 'string' || value.trim().length > 0);
+    })
+  ));
 }
 
 function generatedDate() {

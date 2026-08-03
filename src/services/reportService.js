@@ -165,17 +165,6 @@ async function summaryFromBase(baseSql, replacements, selectSql) {
   return numericRecord(row);
 }
 
-async function trend(table, dateColumn, filters, extraWhere = 'TRUE', extra = {}) {
-  return sequelize.query(
-    `SELECT TO_CHAR(DATE_TRUNC('day', ${dateColumn} AT TIME ZONE :timeZone), 'YYYY-MM-DD') AS label,
-            COUNT(*)::integer AS value
-     FROM ${table}
-     WHERE ${dateColumn} >= :startUtc AND ${dateColumn} < :endUtc AND ${extraWhere}
-     GROUP BY 1 ORDER BY 1`,
-    { replacements: { ...replacementsFor(filters), ...extra }, type: QueryTypes.SELECT },
-  ).then((rows) => rows.map(numericRecord));
-}
-
 function percentChange(current, previous) {
   if (!previous) return current ? 100 : 0;
   return Number((((current - previous) / previous) * 100).toFixed(1));
@@ -237,12 +226,6 @@ async function overviewReport(filters) {
      GROUP BY b.id ORDER BY b.views DESC, b.downloads DESC LIMIT 10`,
     { type: QueryTypes.SELECT },
   );
-  const roles = await sequelize.query(
-    `SELECT r.name AS label, COUNT(DISTINCT ur.user_id)::integer AS value
-     FROM roles r LEFT JOIN users_roles ur ON ur.role_id = r.id
-     GROUP BY r.id ORDER BY value DESC`,
-    { type: QueryTypes.SELECT },
-  );
   const summary = numericRecord(summaryRow);
   const comparisons = {
     newUsers: percentChange(summary.newUsers, Number(previous.newUsers)),
@@ -254,7 +237,7 @@ async function overviewReport(filters) {
     filters,
     { records: topBooks.map(numericRecord), pagination: { page: 1, limit: 10, totalItems: topBooks.length, totalPages: 1 } },
     summary,
-    { trend: await trend('downloads', 'downloaded_at', filters), distribution: roles.map(numericRecord), topItems: topBooks.map(numericRecord) },
+    {},
     { comparisons },
   );
 }
@@ -292,11 +275,7 @@ async function usersReport(filters) {
     `COUNT(*)::integer AS "totalUsers", COUNT(*) FILTER (WHERE status = 'Active')::integer AS "activeUsers",
      COUNT(*) FILTER (WHERE status = 'Inactive')::integer AS "inactiveUsers", COALESCE(SUM(downloads), 0)::integer AS "totalDownloads",
      COALESCE(ROUND(AVG("averageProgress")::numeric, 1), 0) AS "averageProgress"`);
-  const distribution = await sequelize.query(
-    `SELECT role AS label, COUNT(*)::integer AS value FROM (${base}) users_chart GROUP BY role ORDER BY value DESC`,
-    { replacements, type: QueryTypes.SELECT },
-  );
-  return response(filters, result, summary, { trend: await trend('users', 'created_at', filters, 'is_deleted = FALSE'), distribution: distribution.map(numericRecord) }, { booksViewedTracking: 'not_available_without_book_view_histories' });
+  return response(filters, result, summary, {}, { booksViewedTracking: 'not_available_without_book_view_histories' });
 }
 
 async function loginsReport(filters) {
@@ -308,7 +287,7 @@ async function loginsReport(filters) {
   const base = `SELECT a.id::text AS id, u.id::text AS "userId",
       COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username, 'Unknown user') AS "user",
       COALESCE(a.metadata->>'loginMethod', 'password') AS "loginMethod",
-      a.metadata->>'ipAddress' AS "ipAddress", a.metadata->>'deviceType' AS "deviceType",
+      a.metadata->>'deviceType' AS "deviceType",
       a.metadata->>'browser' AS browser, a.metadata->>'operatingSystem' AS "operatingSystem",
       CASE WHEN a.action = 'login_failed' THEN 'Failed' WHEN a.action = 'login_2fa_pending' THEN 'Pending 2FA' ELSE 'Successful' END AS status,
       a.metadata->>'failureReason' AS "failureReason", a.created_at AS "loggedInAt"
@@ -318,10 +297,7 @@ async function loginsReport(filters) {
     `COUNT(*)::integer AS "totalAttempts", COUNT(*) FILTER (WHERE status = 'Successful')::integer AS "successfulLogins",
      COUNT(*) FILTER (WHERE status = 'Failed')::integer AS "failedLogins", COUNT(DISTINCT "userId")::integer AS "uniqueUsers",
      COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'Successful') / NULLIF(COUNT(*), 0), 1), 0) AS "successRate"`);
-  return response(filters, result, summary, {
-    trend: await trend('activities', 'created_at', filters, `action IN ('login', 'login_success', 'login_failed', 'login_2fa_pending')`),
-    distribution: [{ label: 'Successful', value: summary.successfulLogins }, { label: 'Failed', value: summary.failedLogins }],
-  }, { source: 'activities', historyCoverage: 'Only recorded login activities are included' });
+  return response(filters, result, summary, {}, { source: 'activities', historyCoverage: 'Only recorded login activities are included' });
 }
 
 function bookBase(filters, replacements) {
@@ -362,11 +338,7 @@ async function booksReport(filters) {
     `COUNT(*)::integer AS "totalBooks", COUNT(*) FILTER (WHERE status = 'Active')::integer AS "activeBooks",
      COALESCE(SUM(views), 0)::bigint AS "totalViews", COALESCE(SUM(downloads), 0)::bigint AS "totalDownloads",
      COALESCE(SUM(reviews), 0)::integer AS "totalReviews", COALESCE(ROUND(AVG("averageRating")::numeric, 2), 0) AS "averageRating"`);
-  const distribution = await sequelize.query(
-    `SELECT COALESCE(category, 'Uncategorized') AS label, COUNT(*)::integer AS value FROM (${base}) books_chart GROUP BY category ORDER BY value DESC LIMIT 12`,
-    { replacements, type: QueryTypes.SELECT },
-  );
-  return response(filters, result, summary, { trend: await trend('books', 'created_at', filters, 'is_deleted = FALSE'), distribution: distribution.map(numericRecord) });
+  return response(filters, result, summary);
 }
 
 async function bookViewsReport(filters) {
@@ -376,18 +348,14 @@ async function bookViewsReport(filters) {
   if (filters.categoryId) { conditions.push('b.category_id = :categoryId'); replacements.categoryId = filters.categoryId; }
   if (filters.departmentId) { conditions.push('b.department_id = :departmentId'); replacements.departmentId = filters.departmentId; }
   const base = `SELECT b.id::text AS id, b.title, b.views::integer AS "totalViews", c.name AS category,
-      dep.name AS department, mt.name AS "materialType", NULL::integer AS "uniqueViewers",
-      NULL::integer AS "guestViews", NULL::integer AS "authenticatedViews", b.updated_at AS "lastUpdatedAt"
+      dep.name AS department, mt.name AS "materialType", b.updated_at AS "lastUpdatedAt"
     FROM books b LEFT JOIN categories c ON c.id = b.category_id LEFT JOIN departments dep ON dep.id = b.department_id
     LEFT JOIN material_types mt ON mt.id = b.type_id WHERE ${conditions.join(' AND ')}`;
   const result = await runPaged(base, replacements, filters, { totalViews: '"totalViews"', title: 'title' }, 'totalViews');
   const summary = await summaryFromBase(base, replacements,
     `COUNT(*)::integer AS "totalBooks", COALESCE(SUM("totalViews"), 0)::bigint AS "totalViews",
      COUNT(*) FILTER (WHERE "totalViews" = 0)::integer AS "booksWithNoViews"`);
-  return response(filters, result, summary, { topItems: result.records.slice(0, 10).map((book) => ({ label: book.title, value: book.totalViews })) }, {
-    trackingLevel: 'lifetime_aggregate',
-    notice: 'Unique, guest, authenticated, and time-series views require book_view_histories.',
-  });
+  return response(filters, result, summary, {}, { trackingLevel: 'lifetime_aggregate' });
 }
 
 async function downloadsReport(filters) {
@@ -401,7 +369,7 @@ async function downloadsReport(filters) {
       COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username) AS "user",
       u.student_id AS "studentId", b.id::text AS "bookId", b.title AS book, b.cover_url AS "coverUrl", b.isbn,
       COALESCE((SELECT STRING_AGG(a.name, ', ') FROM books_authors ba JOIN authors a ON a.id = ba.author_id WHERE ba.book_id = b.id), 'Unknown') AS author,
-      c.name AS category, dep.name AS department, mt.name AS "materialType", d.downloaded_at AS "downloadedAt", d.ip_address AS "ipAddress",
+      c.name AS category, dep.name AS department, mt.name AS "materialType", d.downloaded_at AS "downloadedAt",
       COUNT(*) OVER (PARTITION BY d.book_id)::integer AS "downloadsPerBook",
       COUNT(*) OVER (PARTITION BY d.user_id)::integer AS "downloadsPerUser"
     FROM downloads d JOIN users u ON u.id = d.user_id JOIN books b ON b.id = d.book_id
@@ -412,11 +380,7 @@ async function downloadsReport(filters) {
     `COUNT(*)::integer AS "totalDownloads", COUNT(DISTINCT "bookId")::integer AS "uniqueBooks",
      COUNT(DISTINCT "userId")::integer AS "uniqueUsers", COALESCE(MAX("downloadsPerBook"), 0)::integer AS "topBookDownloads",
      COALESCE(MAX("downloadsPerUser"), 0)::integer AS "topUserDownloads"`);
-  const distribution = await sequelize.query(
-    `SELECT book AS label, COUNT(*)::integer AS value FROM (${base}) downloads_chart GROUP BY book ORDER BY value DESC LIMIT 10`,
-    { replacements, type: QueryTypes.SELECT },
-  );
-  return response(filters, result, summary, { trend: await trend('downloads', 'downloaded_at', filters), distribution: distribution.map(numericRecord) });
+  return response(filters, result, summary);
 }
 
 async function readingProgressReport(filters) {
@@ -445,10 +409,7 @@ async function readingProgressReport(filters) {
      COALESCE(ROUND(AVG("progressPercentage")::numeric, 1), 0) AS "averageProgress",
      COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE "readingStatus" = 'Completed') / NULLIF(COUNT(*), 0), 1), 0) AS "completionRate",
      COUNT(*) FILTER (WHERE "readingStatus" = 'Inactive Reading')::integer AS "inactiveReaders"`);
-  return response(filters, result, summary, {
-    trend: await trend('reading_progress', 'last_read_at', filters),
-    distribution: ['Completed', 'In Progress', 'Inactive Reading'].map((label) => ({ label, value: result.records.filter((row) => row.readingStatus === label).length })),
-  });
+  return response(filters, result, summary);
 }
 
 async function reviewsReport(filters) {
@@ -474,10 +435,7 @@ async function reviewsReport(filters) {
      COUNT(*) FILTER (WHERE rating = 5)::integer AS "fiveStars", COUNT(*) FILTER (WHERE rating = 4)::integer AS "fourStars",
      COUNT(*) FILTER (WHERE rating = 3)::integer AS "threeStars", COUNT(*) FILTER (WHERE rating = 2)::integer AS "twoStars",
      COUNT(*) FILTER (WHERE rating = 1)::integer AS "oneStar"`);
-  return response(filters, result, summary, {
-    trend: await trend('reviews', 'created_at', filters, filters.status === 'deleted' ? 'is_deleted = TRUE' : 'is_deleted = FALSE'),
-    distribution: [5, 4, 3, 2, 1].map((rating) => ({ label: `${rating} Stars`, value: summary[['oneStar', 'twoStars', 'threeStars', 'fourStars', 'fiveStars'][rating - 1]] })),
-  });
+  return response(filters, result, summary);
 }
 
 async function feedbackReport(filters) {
@@ -497,11 +455,7 @@ async function feedbackReport(filters) {
     `COUNT(*)::integer AS "totalFeedback", COUNT(*) FILTER (WHERE status = 'new')::integer AS "newFeedback",
      COUNT(*) FILTER (WHERE status = 'in_progress')::integer AS "inProgress", COUNT(*) FILTER (WHERE status = 'resolved')::integer AS resolved,
      COUNT(*) FILTER (WHERE status = 'closed')::integer AS closed, COALESCE(ROUND(AVG(rating)::numeric, 2), 0) AS "averageRating"`);
-  const distribution = await sequelize.query(
-    `SELECT status AS label, COUNT(*)::integer AS value FROM (${base}) feedback_chart GROUP BY status ORDER BY value DESC`,
-    { replacements, type: QueryTypes.SELECT },
-  );
-  return response(filters, result, summary, { trend: await trend('feedbacks', 'created_at', filters), distribution: distribution.map(numericRecord) });
+  return response(filters, result, summary);
 }
 
 async function authorsReport(filters) {
@@ -525,7 +479,7 @@ async function authorsReport(filters) {
   const summary = await summaryFromBase(base, replacements,
     `COUNT(*)::integer AS "totalAuthors", COALESCE(SUM("totalBooks"), 0)::integer AS "totalBooks",
      COALESCE(SUM("totalViews"), 0)::bigint AS "totalViews", COALESCE(SUM("totalDownloads"), 0)::bigint AS "totalDownloads"`);
-  return response(filters, result, summary, { distribution: result.records.slice(0, 10).map((row) => ({ label: row.name, value: row.totalBooks })) });
+  return response(filters, result, summary);
 }
 
 async function groupedCatalogReport(filters, type) {
@@ -549,7 +503,7 @@ async function groupedCatalogReport(filters, type) {
   const summary = await summaryFromBase(base, replacements,
     `COUNT(*)::integer AS "totalGroups", COALESCE(SUM("totalBooks"), 0)::integer AS "totalBooks",
      COALESCE(SUM("totalViews"), 0)::bigint AS "totalViews", COALESCE(SUM("totalDownloads"), 0)::bigint AS "totalDownloads"`);
-  return response(filters, result, summary, { distribution: result.records.slice(0, 12).map((row) => ({ label: row[config.label], value: row.totalBooks })) });
+  return response(filters, result, summary);
 }
 
 async function activitiesReport(filters) {
@@ -563,17 +517,13 @@ async function activitiesReport(filters) {
       COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username, 'System') AS "actor",
       COALESCE((SELECT STRING_AGG(r.name, ', ') FROM users_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id), 'system') AS role,
       a.action, a.target_type AS "targetType", a.target_id::text AS "targetId", a.target_name AS "targetName",
-      a.metadata, a.created_at AS "createdAt"
+      a.metadata::jsonb - 'ipAddress' - 'ip' AS metadata, a.created_at AS "createdAt"
     FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE ${conditions.join(' AND ')}`;
   const result = await runPaged(base, replacements, filters, { createdAt: '"createdAt"', actor: 'actor', action: 'action', targetType: '"targetType"' }, 'createdAt');
   const summary = await summaryFromBase(base, replacements,
     `COUNT(*)::integer AS "totalActivities", COUNT(DISTINCT "userId")::integer AS "uniqueActors",
      COUNT(DISTINCT action)::integer AS "actionTypes", COUNT(*) FILTER (WHERE action ILIKE '%deleted%')::integer AS "deleteActions"`);
-  const distribution = await sequelize.query(
-    `SELECT action AS label, COUNT(*)::integer AS value FROM (${base}) activities_chart GROUP BY action ORDER BY value DESC LIMIT 10`,
-    { replacements, type: QueryTypes.SELECT },
-  );
-  return response(filters, result, summary, { trend: await trend('activities', 'created_at', filters), distribution: distribution.map(numericRecord) });
+  return response(filters, result, summary);
 }
 
 async function getReport(type, input = {}) {

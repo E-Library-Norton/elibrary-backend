@@ -72,6 +72,12 @@ router.get(
   ReadingController.listNotes
 );
 router.post(
+  '/:bookId/notes/summary',
+  authenticate,
+  readingRules.book,
+  ReadingController.summarizeNotes
+);
+router.post(
   '/:bookId/notes',
   authenticate,
   readingRules.createNote,

@@ -1,4 +1,5 @@
 const ReadingService = require("../services/readingService");
+const ReadingSummaryService = require("../services/readingSummaryService");
 const ResponseFormatter = require("../utils/responseFormatter");
 
 class ReadingController {
@@ -142,6 +143,22 @@ class ReadingController {
         req.params.noteId
       );
       return ResponseFormatter.noContent(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async summarizeNotes(req, res, next) {
+    try {
+      const summary = await ReadingSummaryService.summarize(
+        req.user.id,
+        req.params.bookId
+      );
+      return ResponseFormatter.success(
+        res,
+        summary,
+        "Reading notes summarized successfully"
+      );
     } catch (error) {
       next(error);
     }
